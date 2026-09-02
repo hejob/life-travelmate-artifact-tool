@@ -5,6 +5,8 @@ Support tool for the Sep 3–11, 2026 family trip: Naha → Fukuoka → Yakushim
 ## Structure
 
 - `app/sankara-days.html` — the trip companion app (single self-contained HTML page). Published as a Claude Artifact.
+- `app/sankara-days-lite.html` — generated shareable variant. Never edit by hand; regenerate with `scripts/build-lite.sh`.
+- `scripts/build-lite.sh` — builds the Lite variant from the main file (title + sync-label tweaks only).
 - `docs/Yakushima 5-Day Sankara Itinerary.xlsx` — original itinerary spreadsheet (source of the Yakushima days).
 - `PROMPT-INIT.md` — original goals / trip notes.
 
@@ -25,4 +27,9 @@ Uses Artifact runtime capabilities `db` (shared state between the two travelers)
 
 ## Updating
 
-Edit `app/sankara-days.html`, then republish it with the Full artifact URL as `url`. For the Lite artifact: copy the file, change `<title>` to "Sankara Days Lite" (and the sync label to "this device"), and republish the copy with the Lite URL as `url` and capabilities `{sample: {}}`.
+Always update both artifacts together:
+
+1. Edit `app/sankara-days.html` only.
+2. Run `scripts/build-lite.sh` to regenerate `app/sankara-days-lite.html`.
+3. Republish `app/sankara-days.html` with the Full URL as `url`, and `app/sankara-days-lite.html` with the Lite URL as `url` (capabilities are stored per artifact and carry forward automatically).
+4. Commit.
