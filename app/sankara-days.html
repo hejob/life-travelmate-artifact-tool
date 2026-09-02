@@ -182,6 +182,44 @@ h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
 .checkrow.on .box::after{content:"";position:absolute;left:5.5px;top:2.5px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(40deg)}
 .checkrow.on{color:var(--done);text-decoration:line-through}
 
+/* conditions strip (sun + tide) */
+.cond{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.cond .c{display:inline-flex;align-items:baseline;gap:5px;font-size:12px;color:var(--ink2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-variant-numeric:tabular-nums}
+.cond .c b{font-weight:700;color:var(--ink);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.cond .c.tide{border-color:color-mix(in srgb,var(--tide) 35%,transparent)}
+.cond .c.tide b{color:var(--tide)}
+.cond .src{font-size:11px;color:var(--ink2);width:100%;margin-top:3px;line-height:1.45}
+.dayhead .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+
+/* emergency card */
+.card.emerg{border-color:color-mix(in srgb,var(--amber) 45%,transparent);background:var(--amber-soft)}
+.erow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--amber) 28%,transparent)}
+.erow:last-child{border-bottom:none}
+.erow .en{font-weight:600;font-size:14.5px}
+.erow .ejp{color:var(--ink2);font-size:12.5px}
+.erow .etel{margin-left:auto;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--amber)}
+.erow .etel.off{color:var(--ink2);font-weight:400;font-size:13px}
+.erow .enote{width:100%;font-size:12.5px;color:var(--ink2);margin-top:1px}
+.erow .emap{margin-top:4px}
+
+/* bookings */
+.brow{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+.brow:last-child{border-bottom:none}
+.brow .bk{flex:0 0 38%;font-size:12.5px;color:var(--ink2);line-height:1.35}
+.brow .bv{flex:1;min-width:0;font-size:14px;overflow-wrap:break-word;cursor:pointer}
+.brow .bv.empty{color:var(--done)}
+.brow input{width:100%;border:1px solid var(--moss);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 8px;font:inherit;font-size:14px}
+
+/* text sheet (offline copy-out) */
+.sheet{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line);z-index:45;padding:10px 14px 12px;display:none;box-shadow:0 -8px 24px rgba(0,0,0,.14)}
+.sheet.on{display:block}
+.sheet .inner{max-width:640px;margin:0 auto}
+.sheet .hd{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.sheet .hd strong{font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet .hd .sp{margin-left:auto}
+.sheet textarea{width:100%;height:32vh;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 11px;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:none}
+.sheet .hint{font-size:11.5px;color:var(--ink2);margin-top:6px}
+
 /* bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:40;padding-bottom:env(safe-area-inset-bottom)}
 nav .row{max-width:640px;margin:0 auto;display:flex}
@@ -194,7 +232,7 @@ nav button.sel{color:var(--moss);font-weight:600}
   @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 }
 @media print{
-  nav,.strip,.askbar,header .sync{display:none}
+  nav,.strip,.askbar,.sheet,.dayhead .acts,header .sync{display:none}
   body{padding-bottom:0;background:#fff;color:#000}
 }
 </style>
@@ -243,6 +281,17 @@ nav button.sel{color:var(--moss);font-weight:600}
     <button class="go" id="askGo">Ask</button>
   </div>
 </div>
+
+<div class="sheet" id="sheet"><div class="inner">
+  <div class="hd">
+    <strong id="sheetTitle"></strong>
+    <span class="sp"></span>
+    <button class="fchip" id="sheetCopy">Copy</button>
+    <button class="fchip" id="sheetClose">Close</button>
+  </div>
+  <textarea id="sheetText" readonly spellcheck="false"></textarea>
+  <div class="hint" id="sheetHint"></div>
+</div></div>
 
 <nav><div class="row">
   <button data-tab="plan" class="sel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Plan</button>
@@ -528,16 +577,149 @@ const LINKS=[
 {t:"JAL flight status",u:"https://www.jal.co.jp/jp/ja/dom/"},
 {t:"Yakushima Tourism Association",u:"https://yakukan.jp/"},
 {t:"Yui Rail (Naha monorail)",u:"https://www.yui-rail.co.jp/"},
-{t:"Yakushima tide table (for Hirauchi onsen)",u:"https://tenki.jp/search/?keyword=%E5%B1%8B%E4%B9%85%E5%B3%B6%20%E6%BD%AE"}
+{t:"Tide table — Tanegashima gauge (JMA, used for Hirauchi)",u:"https://www.data.jma.go.jp/kaiyou/db/tide/suisan/suisan.php?stn=TJ"},
+{t:"Toppy & Rocket high-speed ferry (typhoon fallback)",u:"https://www.tykousoku.jp/"},
+{t:"Hirauchi village — sea onsen info",u:"https://yakushima-hirauchi.com/underwater_hot_spring/"}
+];
+
+/* ---------------- conditions: sun + tide ---------------- */
+/* Sun: NOAA solar calculation for this trip's coordinates — sunrise at that morning's place,
+   sunset at that evening's place (so transit days read correctly).
+   Tide: JMA 2026 published prediction. JMA has no gauge on Yakushima; Tanegashima (TJ) is the
+   nearest official station and is what local guidance points at for the Hirauchi sea onsen. */
+const SUN={
+"2026-09-03":{r:"06:10",s:"18:48",at:"Naha"},
+"2026-09-04":{r:"06:10",s:"18:41",at:"Naha \u2192 Fukuoka"},
+"2026-09-05":{r:"05:55",s:"18:37",at:"Fukuoka \u2192 Yakushima"},
+"2026-09-06":{r:"05:57",s:"18:35",at:"Yakushima"},
+"2026-09-07":{r:"05:58",s:"18:34",at:"Yakushima"},
+"2026-09-08":{r:"05:58",s:"18:33",at:"Yakushima"},
+"2026-09-09":{r:"05:59",s:"18:34",at:"Yakushima \u2192 Fukuoka"},
+"2026-09-10":{r:"05:58",s:"18:40",at:"Fukuoka \u2192 Naha"},
+"2026-09-11":{r:"06:13",s:"18:39",at:"Naha"}
+};
+const TIDE={
+"2026-09-05":{lo:["06:01","18:00"],hi:["13:39","23:41"],from:"16:00"},
+"2026-09-06":{lo:["07:47","20:54"],hi:["15:40"]},
+"2026-09-07":{lo:["09:16","22:07"],hi:["01:53","16:33"]},
+"2026-09-08":{lo:["10:17","22:51"],hi:["03:26","17:10"]},
+"2026-09-09":{lo:["11:05","23:29"],hi:["04:28","17:42"],to:"14:30"}
+};
+const TIDE_SRC="Tide: JMA 2026 prediction, Tanegashima gauge (nearest official station to Yakushima). Hirauchi sea onsen is bathable \u2248 2 h either side of low tide; \u00a5300 to the village, mixed bathing.";
+
+/* ---------------- emergency & logistics ---------------- */
+const EMERG=[
+{t:"Ambulance / Fire",jp:"\u6551\u6025\u30fb\u6d88\u9632",tel:"119",n:"Free from any phone. Say \u201cky\u016bky\u016b desu\u201d (\u6551\u6025\u3067\u3059) for an ambulance, then the place name in Japanese."},
+{t:"Police",jp:"\u8b66\u5bdf",tel:"110"},
+{t:"Coast Guard \u2014 sea accidents",jp:"\u6d77\u4e0a\u4fdd\u5b89\u5e81",tel:"118",n:"Use this at the coast \u2014 Hirauchi sea onsen, Tor\u014dki, beaches \u2014 rather than 119."},
+{t:"Yakushima Tokushukai Hospital",jp:"\u5c4b\u4e45\u5cf6\u5fb3\u6d32\u4f1a\u75c5\u9662",tel:"0997-42-2200",mapq:"\u5c4b\u4e45\u5cf6\u5fb3\u6d32\u4f1a\u75c5\u9662",n:"The island\u2019s only hospital \u2014 Miyanoura 2467, north coast. Designated secondary emergency hospital."},
+{t:"sankara front desk",jp:"\u30b5\u30f3\u30ab\u30e9\u30db\u30c6\u30eb",tel:"0800-800-6007",n:"First call for anything on Yakushima \u2014 shuttle, taxi, or getting you to the hospital."},
+{t:"JAL / JAC domestic desk",jp:"\u65e5\u672c\u822a\u7a7a \u56fd\u5185\u7dda",tel:"0570-025-121",n:"Cancellations and rebooking. Check the typhoon forecast the day before every flight."},
+{t:"Toppy & Rocket high-speed ferry",jp:"\u7a2e\u5b50\u5c4b\u4e45\u9ad8\u901f\u8239",tel:"0570-004015",mapq:"\u5b89\u623f\u6e2f \u5c4b\u4e45\u5cf6",n:"Typhoon fallback if a flight is cancelled: Anbo or Miyanoura \u2192 Kagoshima by sea, then Shinkansen to Fukuoka. Reservation centre 9:00\u201317:30."},
+{t:"Yakushima rental car",jp:"\u30ec\u30f3\u30bf\u30ab\u30fc",tel:"",n:"Add the company and number under Bookings before Sep 6."},
+{t:"Toyota dealer, Naha (own car)",jp:"\u30c8\u30e8\u30bf \u90a3\u8987",tel:"",mapq:"\u30c8\u30e8\u30bf \u90a3\u8987\u5e02",n:"Add the number under Bookings \u2014 pick-up Sep 11, 13:00."}
+];
+
+/* ---------------- bookings (shared, editable) ---------------- */
+const BOOKINGS=[
+{id:"bk_f4",t:"Sep 4 flight \u00b7 Naha \u2192 Fukuoka"},
+{id:"bk_f5",t:"Sep 5 flight \u00b7 Fukuoka \u2192 Yakushima"},
+{id:"bk_f9",t:"Sep 9 flight \u00b7 Yakushima \u2192 Fukuoka"},
+{id:"bk_f10",t:"Sep 10 flight \u00b7 Fukuoka \u2192 Naha"},
+{id:"bk_h1",t:"DoubleTree Shuri \u00b7 Sep 3"},
+{id:"bk_h2",t:"Hilton Sea Hawk \u00b7 Sep 4"},
+{id:"bk_h3",t:"sankara \u00b7 Sep 5\u20139"},
+{id:"bk_h4",t:"Hilton Sea Hawk \u00b7 Sep 9"},
+{id:"bk_h5",t:"DoubleTree Naha \u00b7 Sep 10"},
+{id:"bk_car",t:"Yakushima rental car"},
+{id:"bk_toy",t:"Toyota Naha \u00b7 own car"},
+{id:"bk_din",t:"Sep 9 dinner with friends"}
 ];
 
 /* ---------------- state ---------------- */
-let db=null, sharedRef=null, checks={}, notes=[], notesCol=null;
+let db=null, sharedRef=null, checks={}, bookings={}, notes=[], notesCol=null;
 let sampleFn=null, sampleDead=false;
 let curDay=null, curTab="plan", ideaArea="yakushima", ideaTag=null;
 let askTurns=[], askCtl=null, askBusy=false;
-let noteTagFilter=null, showDone=false, editingNote=null;
+let noteTagFilter=null, showDone=false, editingNote=null, editingBk=null;
 const NOTE_TAGS=[["memo","Memo"],["todo","To-do"],["buy","Buy"],["idea","Idea"],["later","Later"],["otherday","Other day"]];
+
+/* ---------------- shared doc (checks + bookings) ---------------- */
+function shareWrite(){
+  if(sharedRef){ sharedRef.set({checks:{...checks},bookings:{...bookings}}).catch(()=>{}); }
+  else{ lsSet("checks",checks); lsSet("bookings",bookings); }
+}
+
+/* ---------------- sun + tide ---------------- */
+function hm(t){const p=t.split(":");return (+p[0])*60+(+p[1]);}
+function mh(x){x=((x%1440)+1440)%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0");}
+function tideWindows(iso){
+  /* bathable stretch around each low tide, clamped to daylight; drops windows with no daylight left */
+  const td=TIDE[iso], su=SUN[iso];
+  if(!td) return [];
+  const out=[];
+  for(const t of td.lo){
+    let a=hm(t)-120, b=hm(t)+120;
+    if(su){ a=Math.max(a,hm(su.r)); b=Math.min(b,hm(su.s)); }
+    if(td.from) a=Math.max(a,hm(td.from));   /* not on the island yet */
+    if(td.to)   b=Math.min(b,hm(td.to));     /* already leaving for the airport */
+    if(b-a>=30) out.push(mh(a)+"\u2013"+mh(b));
+  }
+  return out;
+}
+function condStrip(d){
+  const su=SUN[d.iso], td=TIDE[d.iso];
+  if(!su&&!td) return "";
+  let out="";
+  if(su) out+=`<span class="c"><b>Sun</b> ${su.r} \u2013 ${su.s} <span class="jp">${esc(su.at)}</span></span>`;
+  if(td){
+    out+=`<span class="c tide"><b>Low tide</b> ${td.lo.join(" \u00b7 ")}</span>`;
+    const w=tideWindows(d.iso);
+    if(w.length) out+=`<span class="c tide"><b>Hirauchi</b> ${w.join(" \u00b7 ")}</span>`;
+  }
+  return `<div class="cond">${out}${td?`<span class="src">${esc(TIDE_SRC)}</span>`:""}</div>`;
+}
+
+/* ---------------- offline text ---------------- */
+function dayText(d){
+  const su=SUN[d.iso], td=TIDE[d.iso];
+  let s=`\u2500\u2500 Sep ${d.n} (${d.dow}) \u2014 ${d.title}\n${d.route}\n`;
+  if(su) s+=`Sun ${su.r}\u2013${su.s} (${su.at})\n`;
+  if(td){
+    s+=`Low tide ${td.lo.join(", ")} | High ${td.hi.join(", ")}\n`;
+    const w=tideWindows(d.iso);
+    if(w.length) s+=`Hirauchi onsen window ${w.join(", ")}\n`;
+  }
+  s+="\n";
+  for(const ev of d.events){
+    const t=(ev.time||"").replace("\n","\u2013");
+    s+=`[${t}] ${ev.title}${ev.jp?"  "+ev.jp:""}\n`;
+    s+=`    ${ev.loc}${ev.trans&&ev.trans!=="\u2014"?"  \u00b7  "+ev.trans:""}\n`;
+    if(ev.note) s+=`    ${ev.note}\n`;
+    if(ev.flag) s+=`    [!] ${ev.flag}\n`;
+  }
+  return s;
+}
+function tripText(){
+  let s=`SANKARA DAYS \u2014 Sep 3\u201311, 2026 \u00b7 all times JST\nSaved ${jstStamp()}\n\n`;
+  s+=DAYS.map(dayText).join("\n");
+  s+=`\n\u2500\u2500 HOTELS\n`;
+  s+=HOTELS.map(h=>`${h.name}  ${h.jp}\n    ${h.d}\n    TEL ${h.tel}`).join("\n")+"\n";
+  s+=`\n\u2500\u2500 EMERGENCY & LOGISTICS\n`;
+  s+=EMERG.map(e=>`${e.t}${e.jp?"  "+e.jp:""} \u2014 ${e.tel||"(add number)"}${e.n?"\n    "+e.n:""}`).join("\n")+"\n";
+  s+=`\n\u2500\u2500 BOOKINGS\n`;
+  s+=BOOKINGS.map(b=>`${b.t}: ${bookings[b.id]||"\u2014"}`).join("\n")+"\n";
+  s+=`\n\u2500\u2500 CHECKLIST\n`;
+  s+=CHECKLIST.map(c=>`[${checks[c.id]?"x":" "}] ${c.t}`).join("\n")+"\n";
+  return s;
+}
+function openSheet(title,text,hint){
+  $("sheetTitle").textContent=title;
+  $("sheetText").value=text;
+  $("sheetHint").textContent=hint||"Copy this into your phone\u2019s Notes or LINE \u2014 it stays readable with no signal.";
+  $("sheet").classList.add("on");
+  $("sheetText").scrollTop=0;
+}
 
 /* ---------------- day strip ---------------- */
 function buildStrip(){
@@ -574,11 +756,15 @@ function renderPlan(){
     }
   }
   $("pane-plan").innerHTML=`
-    <div class="dayhead"><h2>Sep ${d.n} (${d.dow}) — ${esc(d.title)}</h2><div class="route">${esc(d.route)}</div></div>
+    <div class="dayhead"><h2>Sep ${d.n} (${d.dow}) — ${esc(d.title)}</h2><div class="route">${esc(d.route)}</div>
+      <div class="acts"><button class="fchip" id="copyDay">⤓ Save this day offline</button></div>
+    </div>
+    ${condStrip(d)}
     ${nowCard}
     ${dayMaps(d)}
     <div class="tl">${d.events.map(ev=>evHTML(d,ev)).join("")}</div>`;
   bindEvents($("pane-plan"));
+  $("copyDay").onclick=()=>openSheet(`Sep ${d.n} — ${d.title}`,dayText(d));
 }
 function evHTML(d,ev){
   const st=evStatus(d,ev);
@@ -779,8 +965,7 @@ function addNote(){
 /* ---------------- checks ---------------- */
 function toggleCheck(id){
   checks[id]=!checks[id]; if(!checks[id]) delete checks[id];
-  if(sharedRef){ sharedRef.set({checks:{...checks}}).catch(()=>{}); }
-  else lsSet("checks",checks);
+  shareWrite();
   refreshChecksUI();
 }
 function refreshChecksUI(){
@@ -788,10 +973,42 @@ function refreshChecksUI(){
   if(curTab==="info") renderInfo();
 }
 
+/* ---------------- bookings ---------------- */
+function bkSave(){
+  const box=$("bkBox");
+  if(box&&editingBk){
+    const v=box.value.trim();
+    if(v) bookings[editingBk]=v; else delete bookings[editingBk];
+    shareWrite();
+  }
+  editingBk=null; renderInfo();
+}
+function bookingsHTML(){
+  return BOOKINGS.map(b=>{
+    const v=bookings[b.id]||"";
+    const cell=editingBk===b.id
+      ?`<input class="bkbox" id="bkBox" value="${esc(v)}" maxlength="200" placeholder="flight no. / time / confirmation">`
+      :`<div class="bv${v?"":" empty"}" data-bedit="${b.id}">${v?esc(v):"tap to add"}</div>`;
+    return `<div class="brow"><div class="bk">${esc(b.t)}</div>${cell}</div>`;
+  }).join("");
+}
+
 /* ---------------- info ---------------- */
 function renderInfo(){
   const pin='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+  const tel=t=>`<a class="etel" href="tel:${t.replace(/[^0-9+]/g,"")}">☎ ${esc(t)}</a>`;
   $("pane-info").innerHTML=`
+  <h3 class="sec">Emergency &amp; logistics</h3>
+  <div class="card emerg">
+    ${EMERG.map(e=>`<div class="erow">
+      <span><span class="en">${esc(e.t)}</span> <span class="ejp">${esc(e.jp||"")}</span></span>
+      ${e.tel?tel(e.tel):`<span class="etel off">—</span>`}
+      ${e.n?`<div class="enote">${esc(e.n)}</div>`:""}
+      ${e.mapq?`<div class="emap"><a class="chip map" target="_blank" rel="noopener" href="${M(e.mapq)}">${pin}Map</a></div>`:""}
+    </div>`).join("")}
+  </div>
+  <h3 class="sec">Bookings <span class="jp2" style="font-weight:400">(shared · tap to edit)</span></h3>
+  <div class="card" id="bkCard">${bookingsHTML()}</div>
   <h3 class="sec">The whole journey</h3>
   ${mapSVG({area:"ov"})}
   <div class="map-cap">Naha → Fukuoka → Yakushima → Fukuoka → Naha. Schematic map.</div>
@@ -814,14 +1031,36 @@ function renderInfo(){
   <h3 class="sec">Useful links</h3>
   <div class="card">${LINKS.map(l=>`<div class="d" style="margin:4px 0"><a target="_blank" rel="noopener" href="${l.u}">${esc(l.t)}</a></div>`).join("")}</div>
   <h3 class="sec">Offline backup</h3>
-  <button class="fchip" id="printBtn">Open print view (all days)</button>
-  <div class="backup-note">Yakushima's mountains have weak signal. Use your browser's Share → Print/PDF on the print view, or screenshot each day, before heading up.</div>`;
+  <div class="filters" style="margin-top:0">
+    <button class="fchip" id="copyTrip">⤓ Copy whole trip as text</button>
+    <button class="fchip" id="copyToday">⤓ Copy today only</button>
+    <button class="fchip" id="printBtn">Print view (all days)</button>
+  </div>
+  <div class="backup-note">Yakushima's mountains have weak signal, and this page needs the network to load at all. Copy the text into your phone's Notes or LINE — that survives with no signal. The print view is for a PDF/screenshot backup: Share → Print.</div>`;
   $("pane-info").querySelectorAll("[data-chk]").forEach(r=>r.onclick=()=>toggleCheck(r.dataset.chk));
+  $("pane-info").querySelectorAll("[data-bedit]").forEach(c=>c.onclick=()=>{
+    editingBk=c.dataset.bedit; renderInfo();
+    const box=$("bkBox");
+    if(box){
+      box.focus(); box.setSelectionRange(box.value.length,box.value.length);
+      box.addEventListener("keydown",e=>{
+        if(e.key==="Enter"){e.preventDefault();bkSave();}
+        if(e.key==="Escape"){editingBk=null;renderInfo();}
+      });
+      box.addEventListener("blur",()=>{ if(editingBk) bkSave(); });
+    }
+  });
+  $("copyTrip").onclick=()=>openSheet("Whole trip",tripText());
+  $("copyToday").onclick=()=>{
+    const d=DAYS.find(x=>x.iso===jstISO())||DAYS.find(x=>x.iso===curDay)||DAYS[0];
+    openSheet(`Sep ${d.n} — ${d.title}`,dayText(d));
+  };
   $("printBtn").onclick=()=>{
     setTab("plan");
     const w=$("pane-plan");
     w.innerHTML=DAYS.map(d=>`
       <div class="dayhead"><h2>Sep ${d.n} (${d.dow}) — ${esc(d.title)}</h2><div class="route">${esc(d.route)}</div></div>
+      ${condStrip(d)}
       ${dayMaps(d)}
       <div class="tl">${d.events.map(ev=>evHTML(d,ev)).join("")}</div>`).join("");
     bindEvents(w);
@@ -832,6 +1071,7 @@ function renderInfo(){
 /* ---------------- tabs ---------------- */
 function setTab(t){
   curTab=t;
+  $("sheet").classList.remove("on");
   document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("sel",p.id==="pane-"+t));
   document.querySelectorAll("nav [data-tab]").forEach(b=>b.classList.toggle("sel",b.dataset.tab===t));
   $("askbar").classList.toggle("sel",t==="ask"&&!LITE);
@@ -847,6 +1087,15 @@ $("noteAdd").onclick=addNote;
 $("noteInput").addEventListener("keydown",e=>{if(e.key==="Enter")addNote();});
 $("noteTag").innerHTML=NOTE_TAGS.map(([k,l])=>`<option value="${k}">${l}</option>`).join("");
 $("showDoneBtn").onclick=()=>{showDone=!showDone;renderNotes();};
+$("sheetClose").onclick=()=>$("sheet").classList.remove("on");
+$("sheetCopy").onclick=async()=>{
+  const ta=$("sheetText"); let ok=false;
+  try{ await navigator.clipboard.writeText(ta.value); ok=true; }catch(e){}
+  if(!ok){ try{ ta.focus(); ta.setSelectionRange(0,ta.value.length); ok=document.execCommand("copy"); }catch(e){} }
+  $("sheetHint").textContent=ok
+    ?"Copied — paste it into Notes or LINE now."
+    :"Copy is blocked here: long-press the text → Select All → Copy.";
+};
 $("askGo").onclick=sendAsk;
 $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAsk();}});
 
@@ -856,6 +1105,7 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
   curDay=(DAYS.find(d=>d.iso===today)||DAYS[0]).iso;
   if(today>DAYS[DAYS.length-1].iso) curDay=DAYS[DAYS.length-1].iso;
   checks=lsGet("checks",{});
+  bookings=lsGet("bookings",{});
   notes=lsGet("notes",[]);
   if(LITE){const b=document.querySelector('nav [data-tab="ask"]');if(b)b.style.display="none";}
   buildStrip(); renderPlan();
@@ -867,7 +1117,7 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
       db=d;
       sharedRef=db.doc("trip/shared");
       sharedRef.onSnapshot(snap=>{
-        if(snap.exists){ checks=(snap.data().checks)||{}; }
+        if(snap.exists){ const dd=snap.data(); checks=dd.checks||{}; if(dd.bookings) bookings=dd.bookings; }
         $("sync").classList.add("on"); $("syncTxt").textContent="synced";
         refreshChecksUI();
       },()=>{ $("sync").classList.remove("on"); $("syncTxt").textContent="local"; });
