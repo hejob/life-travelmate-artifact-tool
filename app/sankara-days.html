@@ -1,0 +1,877 @@
+<title>Sankara Days</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#F7F6F1; --surface:#FFFFFF; --surface2:#EFEEE6;
+  --ink:#1B241E; --ink2:#5A645C; --line:#DDE2DA;
+  --moss:#3E6B4F; --moss-soft:#E3ECE4; --tide:#33627A; --cedar:#8A6D4B;
+  --amber:#9A6A1B; --amber-soft:#F4E8D2;
+  --now:#3E6B4F; --done:#9AA79D;
+  --sea:#DCE7E9; --land:#EDEAE0; --landline:#D6D1C2;
+  --shadow:0 1px 3px rgba(27,36,30,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131A15; --surface:#1B231D; --surface2:#222B24;
+    --ink:#E7EAE3; --ink2:#9DA89F; --line:#2E3830;
+    --moss:#82B190; --moss-soft:#24352A; --tide:#84B4CC; --cedar:#C4A47C;
+    --amber:#D9A84E; --amber-soft:#3A3120;
+    --now:#82B190; --done:#5A665C;
+    --sea:#162327; --land:#242C25; --landline:#33402F;
+    --shadow:0 1px 3px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131A15; --surface:#1B231D; --surface2:#222B24;
+  --ink:#E7EAE3; --ink2:#9DA89F; --line:#2E3830;
+  --moss:#82B190; --moss-soft:#24352A; --tide:#84B4CC; --cedar:#C4A47C;
+  --amber:#D9A84E; --amber-soft:#3A3120;
+  --now:#82B190; --done:#5A665C;
+  --sea:#162327; --land:#242C25; --landline:#33402F;
+  --shadow:0 1px 3px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); margin:0;
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Segoe UI",sans-serif;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+}
+a{color:var(--tide)}
+button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px}
+.serif{font-family:"Shippori Mincho","Hiragino Mincho ProN",serif}
+
+/* header */
+header{padding:14px 0 8px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font-family:"Shippori Mincho","Hiragino Mincho ProN",serif;font-size:22px;font-weight:700;margin:0;letter-spacing:.02em}
+.brand .sub{color:var(--ink2);font-size:12.5px}
+.sync{margin-left:auto;font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:5px}
+.sync .dot{width:7px;height:7px;border-radius:50%;background:var(--done)}
+.sync.on .dot{background:var(--moss)}
+
+/* day strip */
+.strip{position:sticky;top:0;z-index:30;background:var(--bg);padding:6px 0 10px;border-bottom:1px solid var(--line)}
+.strip-inner{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 14px;max-width:640px;margin:0 auto}
+.strip-inner::-webkit-scrollbar{display:none}
+.daychip{flex:0 0 auto;min-width:52px;padding:6px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);text-align:center}
+.daychip .n{font-family:"Shippori Mincho",serif;font-size:17px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.daychip .w{font-size:10.5px;color:var(--ink2);letter-spacing:.05em}
+.daychip.sel{background:var(--moss);border-color:var(--moss);color:#fff}
+.daychip.sel .w{color:rgba(255,255,255,.85)}
+.daychip.today:not(.sel){border-color:var(--moss);color:var(--moss)}
+.daychip.today:not(.sel) .w{color:var(--moss)}
+
+/* day header + now card */
+.dayhead{margin:16px 0 4px}
+.dayhead h2{font-family:"Shippori Mincho",serif;font-size:19px;margin:0;text-wrap:balance}
+.dayhead .route{color:var(--ink2);font-size:13px;margin-top:2px}
+.nowcard{margin:12px 0;background:var(--moss-soft);border:1px solid var(--moss);border-radius:14px;padding:11px 14px}
+.nowcard .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--moss);font-weight:700}
+.nowcard .t{font-weight:600;margin-top:2px}
+.nowcard .m{font-size:13px;color:var(--ink2);margin-top:1px}
+
+/* maps */
+.map-wrap{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:10px 0 4px;background:var(--sea)}
+.mp{display:block;width:100%;height:auto}
+.mp-sea{fill:var(--sea)}
+.mp-land{fill:var(--land);stroke:var(--landline);stroke-width:1}
+.mp-route{fill:none;stroke:var(--moss);stroke-width:2.5;stroke-linejoin:round}
+.mp-leg{fill:none;stroke:var(--ink2);stroke-width:1.5;stroke-dasharray:4 4;opacity:.5}
+.mp-leg.act{stroke:var(--moss);stroke-width:3;stroke-dasharray:none;opacity:1}
+.mp-leglbl{font-size:11px;fill:var(--ink2);text-anchor:middle}
+.mp-leglbl.act{fill:var(--moss);font-weight:700}
+.mp-m.stop circle{fill:var(--moss);stroke:#fff;stroke-width:1.5}
+.mp-m.idea circle{fill:var(--tide);stroke:#fff;stroke-width:1.2}
+.mp-m.city circle{fill:var(--ink)}
+.mp-m.ctx circle{fill:var(--ink2)}
+.mp-n{fill:#fff;font-size:9.5px;font-weight:700;text-anchor:middle}
+.mp-lbl{font-size:10px;fill:var(--ink);stroke:var(--sea);stroke-width:2.5;paint-order:stroke;stroke-linejoin:round}
+.mp-m.city .mp-lbl{font-size:11.5px;font-weight:700}
+.mp-m.ctx .mp-lbl{fill:var(--ink2);font-size:9px}
+.map-cap{font-size:11px;color:var(--ink2);margin:0 0 10px}
+
+/* timeline */
+.tl{margin:10px 0 24px;display:flex;flex-direction:column;gap:8px}
+.ev{display:flex;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px;box-shadow:var(--shadow)}
+.ev.now{border-color:var(--now);border-width:1.5px}
+.ev.past{opacity:.62}
+.ev.done .title{text-decoration:line-through;color:var(--done)}
+.ev .time{flex:0 0 52px;font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;line-height:1.4;padding-top:2px;white-space:pre-line}
+.ev .body{flex:1;min-width:0}
+.ev .title{font-weight:600;font-size:15.5px}
+.jp{color:var(--ink2);font-weight:400;font-size:13.5px}
+.ev .note{font-size:13px;color:var(--ink2);margin-top:3px}
+.meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2.5px 9px;background:var(--surface2);color:var(--ink);text-decoration:none}
+.chip svg{width:11px;height:11px;flex:none}
+.chip.map{color:var(--tide);border-color:color-mix(in srgb,var(--tide) 35%,transparent)}
+.chip.trans{color:var(--cedar)}
+.chip.flag{color:var(--amber);background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 40%,transparent);font-weight:600}
+.chip.askbtn{color:var(--moss);border-color:var(--moss);font-weight:600}
+.tick{flex:0 0 26px;align-self:flex-start;padding-top:2px}
+.tick span{display:block;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);position:relative}
+.ev.done .tick span{background:var(--moss);border-color:var(--moss)}
+.ev.done .tick span::after{content:"";position:absolute;left:6px;top:3.5px;width:6px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(40deg)}
+
+/* tabs content */
+.pane{display:none}
+.pane.sel{display:block}
+h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
+
+/* ideas + generic filter chips */
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+.fchip{font-size:12.5px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;color:var(--ink2)}
+.fchip.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filters .lbl{width:100%;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-top:6px}
+.idea{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:8px;box-shadow:var(--shadow);display:flex;gap:10px}
+.idea .num{flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:var(--tide);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.idea .bd{flex:1;min-width:0}
+.idea .title{font-weight:600;font-size:15px}
+.idea .note{font-size:13px;color:var(--ink2);margin-top:2px}
+
+/* ask */
+.chat{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+.msg{max-width:88%;border-radius:14px;padding:9px 13px;font-size:14.5px;white-space:pre-wrap;overflow-wrap:break-word}
+.msg.user{align-self:flex-end;background:var(--moss);color:#fff;border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.bot.thinking{color:var(--ink2);font-style:italic}
+.suggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.askbar{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line);padding:8px 14px;display:none}
+.askbar.sel{display:block}
+.askbar .row{max-width:640px;margin:0 auto;display:flex;gap:8px}
+.askbar textarea{flex:1;resize:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit;font-size:14.5px;max-height:96px}
+.askbar .go{background:var(--moss);color:#fff;border-radius:12px;padding:0 16px;font-weight:600}
+.askbar .go.stop{background:var(--amber)}
+.askoff{color:var(--ink2);font-size:13.5px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:14px}
+
+/* notes */
+.notebar{display:flex;gap:6px;margin:14px 0 6px}
+.notebar input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit;font-size:14.5px}
+.notebar select{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:0 6px;font:inherit;font-size:13px;max-width:96px}
+.notebar button{background:var(--moss);color:#fff;border-radius:12px;padding:0 14px;font-weight:600}
+.note-item{display:flex;gap:9px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:7px}
+.note-item.done .txt{text-decoration:line-through;color:var(--done)}
+.note-item .ntick{flex:0 0 22px;padding-top:1px}
+.note-item .ntick span{display:block;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);position:relative}
+.note-item.done .ntick span{background:var(--moss);border-color:var(--moss)}
+.note-item.done .ntick span::after{content:"";position:absolute;left:5.5px;top:2.5px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(40deg)}
+.note-item .bd{flex:1;min-width:0}
+.note-item .txt{font-size:14.5px;overflow-wrap:break-word}
+.note-item .sub{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap}
+.note-item .tagchip{font-size:10.5px;border-radius:999px;padding:1.5px 8px;background:var(--surface2);border:1px solid var(--line);color:var(--ink2);font-weight:600;letter-spacing:.03em}
+.note-item .tagchip.todo{color:var(--amber);background:var(--amber-soft)}
+.note-item .tagchip.buy{color:var(--cedar)}
+.note-item .tagchip.idea{color:var(--moss)}
+.note-item .tagchip.later{color:var(--tide)}
+.note-item .when{font-size:11px;color:var(--ink2)}
+.note-item .act{color:var(--ink2);font-size:14px;padding:0 4px;flex:none}
+.note-item .editbox{width:100%;border:1px solid var(--moss);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 9px;font:inherit;font-size:14.5px}
+.showdone{margin:6px 0 14px}
+
+/* info */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.card .t{font-weight:600}
+.card .jp2{color:var(--ink2);font-size:13px}
+.card .d{font-size:13px;color:var(--ink2);margin-top:2px}
+.checkrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.checkrow:last-child{border-bottom:none}
+.checkrow .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);flex:none;position:relative}
+.checkrow.on .box{background:var(--moss);border-color:var(--moss)}
+.checkrow.on .box::after{content:"";position:absolute;left:5.5px;top:2.5px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(40deg)}
+.checkrow.on{color:var(--done);text-decoration:line-through}
+
+/* bottom nav */
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:40;padding-bottom:env(safe-area-inset-bottom)}
+nav .row{max-width:640px;margin:0 auto;display:flex}
+nav button{flex:1;padding:8px 0 7px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--ink2);letter-spacing:.03em}
+nav button svg{width:21px;height:21px}
+nav button.sel{color:var(--moss);font-weight:600}
+.backup-note{font-size:12.5px;color:var(--ink2);margin:8px 0 16px}
+@media (prefers-reduced-motion: no-preference){
+  .pane.sel{animation:fade .18s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+}
+@media print{
+  nav,.strip,.askbar,header .sync{display:none}
+  body{padding-bottom:0;background:#fff;color:#000}
+}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1>Sankara Days</h1>
+    <span class="sub serif">那覇 · 福岡 · 屋久島 — Sep 3–11</span>
+    <span class="sync" id="sync"><span class="dot"></span><span id="syncTxt">local</span></span>
+  </div>
+</header>
+</div>
+
+<div class="strip" id="strip"><div class="strip-inner" id="stripInner"></div></div>
+
+<div class="wrap">
+  <div class="pane sel" id="pane-plan"></div>
+  <div class="pane" id="pane-ideas">
+    <div class="filters" id="ideaFilters"></div>
+    <div id="ideaMap"></div>
+    <div id="ideaList"></div>
+  </div>
+  <div class="pane" id="pane-ask">
+    <div id="askOff" class="askoff" hidden>Ask needs the Claude viewer with sampling enabled on this account — it isn't available here. The rest of the app works as usual.</div>
+    <div class="filters" id="askDays"></div>
+    <div class="chat" id="chat"></div>
+    <div class="suggest" id="suggest"></div>
+  </div>
+  <div class="pane" id="pane-notes">
+    <div class="notebar">
+      <input id="noteInput" placeholder="Quick note…" maxlength="500">
+      <select id="noteTag"></select>
+      <button id="noteAdd">Add</button>
+    </div>
+    <div class="filters" id="noteFilters"></div>
+    <div id="noteList"></div>
+    <button class="fchip showdone" id="showDoneBtn"></button>
+  </div>
+  <div class="pane" id="pane-info"></div>
+</div>
+
+<div class="askbar" id="askbar">
+  <div class="row">
+    <textarea id="askInput" rows="1" placeholder="Ask about the trip, places, food…"></textarea>
+    <button class="go" id="askGo">Ask</button>
+  </div>
+</div>
+
+<nav><div class="row">
+  <button data-tab="plan" class="sel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Plan</button>
+  <button data-tab="ideas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Ideas</button>
+  <button data-tab="ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/></svg>Ask</button>
+  <button data-tab="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h6M9 14h6"/></svg>Notes</button>
+  <button data-tab="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Info</button>
+</div></nav>
+
+<script>
+"use strict";
+/* ---------------- helpers ---------------- */
+const M = q => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function lsGet(k,f){try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){return f}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function jstISO(){return new Intl.DateTimeFormat("sv-SE",{timeZone:"Asia/Tokyo"}).format(new Date())}
+function jstMin(){
+  const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());
+  const g=t=>+p.find(x=>x.type===t).value;
+  return g("hour")*60+g("minute");
+}
+function jstStamp(){return new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Tokyo",weekday:"short",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date())+" JST"}
+
+/* ---------------- geography ---------------- */
+const YAKU=[[30.455,130.52],[30.44,130.60],[30.40,130.665],[30.34,130.67],[30.30,130.66],[30.26,130.63],[30.225,130.585],[30.235,130.51],[30.26,130.435],[30.32,130.415],[30.39,130.42],[30.435,130.455]];
+const TANE=[[30.37,130.87],[30.47,130.92],[30.65,130.97],[30.83,131.05],[30.73,131.07],[30.55,131.00],[30.40,130.94]];
+const KYUSHU=[[33.95,130.85],[33.6,131.75],[32.9,131.95],[32.0,131.55],[31.35,131.45],[31.0,131.05],[31.05,130.7],[31.25,130.55],[31.05,130.45],[31.35,130.2],[31.8,130.2],[32.1,130.05],[32.6,129.9],[33.2,129.75],[33.55,129.9],[33.9,130.4]];
+const OKINAWA=[[26.9,128.3],[26.6,128.15],[26.4,127.95],[26.16,127.83],[26.06,127.66],[26.2,127.63],[26.45,127.75],[26.7,127.9],[26.85,128.1]];
+const FUK_LAND=[[33.63,130.30],[33.615,130.335],[33.607,130.347],[33.598,130.352],[33.597,130.36],[33.60,130.372],[33.596,130.383],[33.598,130.395],[33.605,130.405],[33.60,130.415],[33.598,130.43],[33.60,130.45],[33.605,130.50],[33.61,130.58],[33.40,130.62],[33.40,130.24]];
+const NAHA_LAND=[[26.30,127.71],[26.27,127.69],[26.245,127.678],[26.226,127.668],[26.215,127.666],[26.205,127.65],[26.196,127.64],[26.185,127.648],[26.17,127.645],[26.155,127.652],[26.14,127.665],[26.14,127.86],[26.30,127.86]];
+const SENAGA=[[26.181,127.643],[26.177,127.648],[26.173,127.643],[26.177,127.638]];
+const AREAS={
+  ov:{lands:[KYUSHU,OKINAWA,YAKU,TANE],base:[[25.95,127.3],[34.05,132.0]]},
+  yaku:{lands:[YAKU],base:[[30.20,130.39],[30.47,130.69]]},
+  fuk:{lands:[FUK_LAND],base:[[33.572,130.335],[33.615,130.465]]},
+  naha:{lands:[NAHA_LAND,SENAGA],base:[[26.15,127.62],[26.24,127.75]]}
+};
+/* places: ll, label, optional q (maps query), la:"end", ld (label dy) */
+const PL={
+  naha_c:{ll:[26.21,127.68],l:"Naha 那覇"},
+  fuk_c:{ll:[33.59,130.40],l:"Fukuoka 福岡",la:"end"},
+  yaku_c:{ll:[30.34,130.53],l:"Yakushima 屋久島"},
+  naha_ap:{ll:[26.196,127.646],l:"Naha Airport",q:"那覇空港"},
+  fuk_ap:{ll:[33.585,130.451],l:"Fukuoka Airport",q:"福岡空港",la:"end"},
+  yaku_ap:{ll:[30.3856,130.659],l:"Airport",q:"屋久島空港",la:"end"},
+  hilton:{ll:[33.595,130.362],l:"Hilton Sea Hawk",q:"ヒルトン福岡シーホーク",ld:-8},
+  dt_shuri:{ll:[26.207,127.712],l:"DoubleTree Shuri",q:"ダブルツリーbyヒルトン那覇首里城",ld:10},
+  dt_naha:{ll:[26.211,127.674],l:"DoubleTree Naha",q:"ダブルツリーbyヒルトン那覇",la:"end"},
+  sankara:{ll:[30.279,130.635],l:"sankara",q:"sankara hotel&spa 屋久島"},
+  shuri:{ll:[26.219,127.719],l:"Shuri Castle",q:"首里城公園"},
+  kokusai:{ll:[26.214,127.686],l:"Kokusai-dōri",q:"国際通り",ld:-8},
+  umikaji:{ll:[26.177,127.645],l:"Umikaji Terrace",q:"瀬長島ウミカジテラス"},
+  toroki:{ll:[30.272,130.628],l:"Torōki Falls",q:"トローキの滝",la:"end",ld:10},
+  shiratani:{ll:[30.373,130.575],l:"Shiratani Unsuikyō",q:"白谷雲水峡"},
+  warung:{ll:[30.323,130.656],l:"Warung Karang (Anbo)",q:"ワルンカラン 屋久島",la:"end"},
+  yland:{ll:[30.302,130.568],l:"Yakusugi Land",q:"ヤクスギランド",ld:10},
+  katagiri:{ll:[30.322,130.654],l:"Katagiri-san (Anbo)",q:"かたぎりさん 屋久島",la:"end"},
+  senpiro:{ll:[30.283,130.607],l:"Senpiro Falls",q:"千尋の滝 屋久島",ld:-8},
+  oasis:{ll:[30.276,130.63],l:"Oasis (Mugio)",q:"オアシス 屋久島 食事",la:"end",ld:12},
+  tenjin:{ll:[33.591,130.399],l:"Tenjin",q:"天神 福岡",ld:12},
+  nakasu:{ll:[33.593,130.407],l:"Nakasu",q:"中洲屋台",ld:-6},
+  miyanoura:{ll:[30.427,130.572],l:"Miyanoura",q:"宮之浦 屋久島"}
+};
+const LEGS=[
+  {f:"naha_c",t:"fuk_c",d:"9/4",bend:1},
+  {f:"fuk_c",t:"yaku_c",d:"9/5",bend:1},
+  {f:"yaku_c",t:"fuk_c",d:"9/9",bend:-1},
+  {f:"fuk_c",t:"naha_c",d:"9/10",bend:-1}
+];
+function fitProj(area,extraPts){
+  const A=AREAS[area];
+  let la0=A.base[0][0],lo0=A.base[0][1],la1=A.base[1][0],lo1=A.base[1][1];
+  for(const p of extraPts||[]){la0=Math.min(la0,p[0]);la1=Math.max(la1,p[0]);lo0=Math.min(lo0,p[1]);lo1=Math.max(lo1,p[1]);}
+  const pa=(la1-la0)*0.09,po=(lo1-lo0)*0.09;
+  la0-=pa;la1+=pa;lo0-=po;lo1+=po;
+  const W=600,k=Math.cos((la0+la1)/2*Math.PI/180);
+  let H=Math.round(W*(la1-la0)/((lo1-lo0)*k));
+  H=Math.max(180,Math.min(460,H));
+  return {W,H,x:g=>(g-lo0)/(lo1-lo0)*W,y:t=>(la1-t)/(la1-la0)*H};
+}
+function polyPath(pr,pts){return pts.map((p,i)=>(i?"L":"M")+pr.x(p[1]).toFixed(1)+" "+pr.y(p[0]).toFixed(1)).join("")+"Z"}
+function marker(pr,ll,n,label,cls,q,la,ld){
+  const x=pr.x(ll[1]),y=pr.y(ll[0]);
+  const r=cls==="stop"?8:cls==="idea"?7.5:cls==="city"?5:3.2;
+  const end=la==="end";
+  const dy=(ld||0);
+  let m=`<g class="mp-m ${cls}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}"/>`;
+  if(n!=null)m+=`<text x="${x.toFixed(1)}" y="${(y+3).toFixed(1)}" class="mp-n">${n}</text>`;
+  if(label)m+=`<text x="${(end?x-r-3:x+r+3).toFixed(1)}" y="${(y+3.5+dy).toFixed(1)}" class="mp-lbl"${end?' text-anchor="end"':""}>${esc(label)}</text>`;
+  m+="</g>";
+  return q?`<a href="${M(q)}" target="_blank" rel="noopener">${m}</a>`:m;
+}
+function mapSVG(spec){
+  const extra=[];
+  (spec.stops||[]).forEach(k=>extra.push(PL[k].ll));
+  (spec.ctx||[]).forEach(k=>extra.push(PL[k].ll));
+  (spec.ideas||[]).forEach(i=>extra.push(i.ll));
+  const pr=fitProj(spec.area,extra);
+  let s=`<svg viewBox="0 0 ${pr.W} ${pr.H}" class="mp" role="img" aria-label="schematic map">`;
+  s+=`<rect width="${pr.W}" height="${pr.H}" class="mp-sea"/>`;
+  for(const Lp of AREAS[spec.area].lands) s+=`<path d="${polyPath(pr,Lp)}" class="mp-land"/>`;
+  if(spec.area==="ov"){
+    LEGS.forEach((lg,i)=>{
+      const a=PL[lg.f].ll,b=PL[lg.t].ll;
+      const x1=pr.x(a[1]),y1=pr.y(a[0]),x2=pr.x(b[1]),y2=pr.y(b[0]);
+      const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy)||1;
+      const cx=(x1+x2)/2-dy/L*L*0.16*lg.bend, cy=(y1+y2)/2+dx/L*L*0.16*lg.bend;
+      const act=spec.leg==null||spec.leg===i;
+      s+=`<path d="M${x1.toFixed(1)} ${y1.toFixed(1)}Q${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}" class="mp-leg${act?" act":""}"/>`;
+      const tx=(x1+2*cx+x2)/4,ty=(y1+2*cy+y2)/4;
+      s+=`<text x="${tx.toFixed(1)}" y="${(ty-5).toFixed(1)}" class="mp-leglbl${act?" act":""}">${lg.d}</text>`;
+    });
+    ["naha_c","fuk_c","yaku_c"].forEach(k=>{const p=PL[k];s+=marker(pr,p.ll,null,p.l,"city",null,p.la,p.ld);});
+  }
+  const stops=(spec.stops||[]).map(k=>PL[k]);
+  if(stops.length>1){
+    s+=`<path d="${stops.map((p,i)=>(i?"L":"M")+pr.x(p.ll[1]).toFixed(1)+" "+pr.y(p.ll[0]).toFixed(1)).join("")}" class="mp-route"/>`;
+  }
+  (spec.ctx||[]).forEach(k=>{const p=PL[k];s+=marker(pr,p.ll,null,p.l,"ctx",p.q,p.la,p.ld);});
+  const lastDup=stops.length>2&&spec.stops[0]===spec.stops[spec.stops.length-1];
+  stops.forEach((p,i)=>{
+    if(lastDup&&i===stops.length-1)return;
+    s+=marker(pr,p.ll,i+1,p.l,"stop",p.q||p.l,p.la,p.ld);
+  });
+  (spec.ideas||[]).forEach((it,i)=>{s+=marker(pr,it.ll,i+1,it.name,"idea",it.mapq,it.la,it.ld);});
+  s+="</svg>";
+  return `<div class="map-wrap">${s}</div>`;
+}
+const MAP_CAP=`<div class="map-cap">Schematic map — tap a marker to open Google Maps.</div>`;
+
+/* ---------------- itinerary ---------------- */
+const DAYS = [
+{iso:"2026-09-03",n:"3",dow:"Thu",title:"Naha — settle in",route:"那覇 · car drop-off, DoubleTree Shuri",
+ maps:[{area:"naha",stops:["dt_shuri"],ctx:["naha_ap","kokusai","shuri"]}],
+ events:[
+ {id:"d3a",time:"day",title:"Drop car at Toyota dealer",jp:"トヨタで車を整備入庫",loc:"Toyota dealer, Naha",mapq:"トヨタ 那覇市",note:"Car stays for maintenance — pick-up Sep 11 at 13:00.",trans:"Car"},
+ {id:"d3b",time:"aft",title:"Check in — DoubleTree Shuri Castle",jp:"ダブルツリーbyヒルトン那覇首里城",loc:"Shuri, Naha",mapq:"ダブルツリーbyヒルトン那覇首里城",note:"Hilton Honors rate.",trans:"Taxi / Yui Rail"},
+ {id:"d3c",time:"eve",title:"Evening free",jp:"自由時間",loc:"Naha",mapq:"首里城公園",note:"Shuri Castle park is next door; or head to Kokusai-dōri. See Ideas › Naha.",trans:"—",ideas:"naha"}
+]},
+{iso:"2026-09-04",n:"4",dow:"Fri",title:"Naha → Fukuoka",route:"那覇 → 福岡 · Hilton Sea Hawk",
+ maps:[{area:"ov",leg:0},{area:"fuk",stops:["fuk_ap","hilton"],ctx:["tenjin","nakasu"]}],
+ events:[
+ {id:"d4a",time:"8:00\n9:00",s:480,e:540,title:"Breakfast at hotel",jp:"朝食",loc:"DoubleTree Shuri",mapq:"ダブルツリーbyヒルトン那覇首里城",trans:"Walk"},
+ {id:"d4b",time:"9:00",s:540,e:660,title:"To Naha Airport",jp:"那覇空港へ",loc:"Naha Airport",mapq:"那覇空港",note:"Yui Rail from Shuri ≈ 30 min direct, or taxi.",trans:"Yui Rail / Taxi"},
+ {id:"d4c",time:"~12:10",s:660,e:735,title:"Fly to Fukuoka",jp:"福岡へ",loc:"Fukuoka Airport 福岡空港",mapq:"福岡空港",note:"Arrive ≈ 12:10.",trans:"Flight",flag:"confirm"},
+ {id:"d4d",time:"aft",s:780,e:900,title:"Check in — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",note:"Subway Kūkō line to Tōjinmachi + short taxi/bus, or taxi ≈ 20 min.",trans:"Subway / Taxi"},
+ {id:"d4e",time:"eve",title:"Evening free",jp:"自由時間",loc:"Fukuoka",mapq:"中洲屋台",note:"Yatai food stalls, Fukuoka Tower sunset (15 min walk). See Ideas › Fukuoka.",trans:"—",ideas:"fukuoka"}
+]},
+{iso:"2026-09-05",n:"5",dow:"Sat",title:"Fukuoka → Yakushima",route:"福岡 → 屋久島 · sankara check-in",
+ maps:[{area:"ov",leg:1},{area:"yaku",stops:["yaku_ap","sankara","toroki"],ctx:["miyanoura"]}],
+ events:[
+ {id:"d5a",time:"am",title:"To Fukuoka Airport",jp:"福岡空港へ",loc:"Fukuoka Airport",mapq:"福岡空港",note:"Taxi ≈ 20–30 min from the Hilton; domestic terminal.",trans:"Taxi"},
+ {id:"d5b",time:"13:50\n15:00",s:830,e:900,title:"Fly to Yakushima",jp:"屋久島へ",loc:"Yakushima Airport 屋久島空港",mapq:"屋久島空港",note:"JAC propeller flight.",trans:"Flight",flag:"confirm"},
+ {id:"d5c",time:"15:00\n16:00",s:900,e:960,title:"Shuttle + check-in, Manasa Villa",jp:"sankara hotel&spa 屋久島",loc:"sankara hotel&spa",mapq:"sankara hotel&spa 屋久島",note:"Free hotel shuttle from the airport; settle into the villa.",trans:"Hotel shuttle"},
+ {id:"d5d",time:"16:00\n17:00",s:960,e:1020,title:"Torōki Falls",jp:"トローキの滝",loc:"Mugio 麦生",mapq:"トローキの滝",note:"Short walk to the deck — a waterfall dropping straight into the ocean.",trans:"Car (1 h) / bicycle"},
+ {id:"d5e",time:"18:00\n20:00",s:1080,e:1200,title:"Dinner — ayana",jp:"アヤナ",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"First included French-regional prix fixe.",trans:"Walk"}
+]},
+{iso:"2026-09-06",n:"6",dow:"Sun",title:"Mossy forest day",route:"白谷雲水峡 · car 9:00–15:00 · sauna 15:00",
+ maps:[{area:"yaku",stops:["sankara","shiratani","warung","sankara"],ctx:["miyanoura","yaku_ap"]}],
+ events:[
+ {id:"d6a",time:"7:30\n8:30",s:450,e:510,title:"Breakfast",jp:"朝食",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Complimentary Diamond breakfast.",trans:"Walk"},
+ {id:"d6b",time:"9:00\n13:00",s:540,e:780,title:"Hike — Shiratani Unsuikyō",jp:"白谷雲水峡・弥生杉コース",loc:"Shiratani Unsuikyō",mapq:"白谷雲水峡",note:"Yayoi-sugi loop, ≈ 1 h easy walk in the moss forest. Rental car 9:00–15:00.",trans:"Car rental"},
+ {id:"d6c",time:"13:30\n14:30",s:810,e:870,title:"Lunch — Warung Karang",jp:"ワルン・カラン",loc:"Anbo 安房",mapq:"ワルンカラン 屋久島",note:"Southeast-Asian cuisine. Closes 15:00.",trans:"Car rental"},
+ {id:"d6d",time:"15:00\n17:30",s:900,e:1050,title:"Relaxation — sauna 15:00",jp:"サウナ予約 15:00",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Return car; pool or villa. Sauna reservation at 15:00.",trans:"—"},
+ {id:"d6e",time:"18:30\n20:30",s:1110,e:1230,title:"Dinner — ayana",jp:"アヤナ",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Included multi-course dinner.",trans:"Walk"}
+]},
+{iso:"2026-09-07",n:"7",dow:"Mon",title:"Ancient cedars day",route:"ヤクスギランド · car 10:00–15:00",
+ maps:[{area:"yaku",stops:["sankara","yland","katagiri","sankara"],ctx:["yaku_ap"]}],
+ events:[
+ {id:"d7a",time:"8:30\n9:30",s:510,e:570,title:"Breakfast",jp:"朝食",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Fuel up for the cedar forest.",trans:"Walk"},
+ {id:"d7b",time:"10:30\n12:30",s:630,e:750,title:"Hike — Yakusugi Land",jp:"ヤクスギランド",loc:"Yakusugi Land",mapq:"ヤクスギランド",note:"50-min paved course among ancient giant cedars. Rental car 10:00–15:00.",trans:"Car rental"},
+ {id:"d7c",time:"13:30\n14:30",s:810,e:870,title:"Lunch — Katagiri-san",jp:"かたぎりさん",loc:"Anbo 安房",mapq:"かたぎりさん 屋久島",note:"Hearty local lunch.",trans:"Car rental"},
+ {id:"d7d",time:"15:30\n18:00",s:930,e:1080,title:"Relaxation",jp:"休憩",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Rest and freshen up before dinner.",trans:"—"},
+ {id:"d7e",time:"18:30\n20:30",s:1110,e:1230,title:"Dinner — okas / ayana",jp:"オーカス / アヤナ",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Flexible night for the okas fine-dining upgrade, pending availability; otherwise ayana.",trans:"Walk",flag:"decide"}
+]},
+{iso:"2026-09-08",n:"8",dow:"Tue",title:"Waterfalls + open slot",route:"千尋の滝 · car 10:00–16:00",
+ maps:[{area:"yaku",stops:["sankara","senpiro","oasis","sankara"],ctx:["yaku_ap"]}],
+ events:[
+ {id:"d8a",time:"8:30\n9:30",s:510,e:570,title:"Breakfast",jp:"朝食",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Complimentary Diamond breakfast.",trans:"Walk"},
+ {id:"d8b",time:"10:30\n11:30",s:630,e:690,title:"Senpiro Falls",jp:"千尋の滝",loc:"Senpiro Falls",mapq:"千尋の滝 屋久島",note:"Observation deck view of the 60 m cascade. Rental car 10:00–16:00.",trans:"Car rental"},
+ {id:"d8c",time:"12:00\n13:00",s:720,e:780,title:"Lunch — Home Cooking Oasis",jp:"お食事処オアシス",loc:"Mugio area 麦生",mapq:"オアシス 屋久島 食事",note:"Casual Japanese midday meal. Open until 16:00.",trans:"Car rental"},
+ {id:"d8d",time:"13:30\n15:30",s:810,e:930,title:"Open slot — you have the car",jp:"未定・自由枠",loc:"TBD",mapq:"屋久島",note:"2 free hours with the car until 16:00. Ideas: Ōko Falls, Onoaida Onsen, Fruit Garden — see Ideas › Yakushima, or ask Claude.",trans:"Car rental",flag:"tbd",ideas:"yakushima",ask:"We have a free slot Sep 8, 13:30–15:30 on Yakushima with a rental car (must return it by 16:00, starting near Mugio after lunch). Weather today is ___. What should we do?"},
+ {id:"d8e",time:"16:00\n18:00",s:960,e:1080,title:"Relaxation",jp:"休憩",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Return car; enjoy the final full afternoon.",trans:"—"},
+ {id:"d8f",time:"18:30\n20:30",s:1110,e:1230,title:"Dinner — ayana / okas",jp:"アヤナ / オーカス",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"ayana dinner (or okas upgrade if staff moved it here).",trans:"Walk"}
+]},
+{iso:"2026-09-09",n:"9",dow:"Wed",title:"Yakushima → Fukuoka",route:"屋久島 → 福岡 · dinner with friends",
+ maps:[{area:"ov",leg:2},{area:"fuk",stops:["fuk_ap","hilton"],ctx:["tenjin","nakasu"]}],
+ events:[
+ {id:"d9a",time:"8:30\n10:00",s:510,e:600,title:"Breakfast",jp:"朝食",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Final leisurely breakfast.",trans:"Walk"},
+ {id:"d9b",time:"10:00\n12:00",s:600,e:720,title:"Resort time",jp:"リゾートでのんびり",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Diamond late check-out.",trans:"—"},
+ {id:"d9c",time:"12:00\n13:00",s:720,e:780,title:"Shuttle to airport",jp:"空港へ",loc:"Yakushima Airport",mapq:"屋久島空港",note:"Hotel shuttle.",trans:"Hotel shuttle"},
+ {id:"d9d",time:"~16:45",s:1005,e:1080,title:"Fly to Fukuoka",jp:"福岡へ",loc:"Fukuoka Airport",mapq:"福岡空港",note:"Departure around 16:45 — confirm exact time.",trans:"Flight",flag:"confirm"},
+ {id:"d9e",time:"eve",s:1140,e:1320,title:"Dinner with 2 friends",jp:"友人と夕食（要予約）",loc:"Fukuoka city",mapq:"博多 もつ鍋",note:"NOT YET RESERVED — pick a place and book. Motsunabe or mizutaki are great group choices; see Ideas › Fukuoka.",trans:"Subway / Taxi",flag:"reserve",ideas:"fukuoka",ask:"Recommend 3 restaurants in central Fukuoka (Tenjin/Nakasu/Hakata) for a relaxed dinner for 4 people on Sep 9 evening — local specialties like motsunabe or mizutaki, mid-range, likely to accept a same-week reservation. Include Japanese names."},
+ {id:"d9f",time:"night",title:"Stay — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",trans:"—"}
+]},
+{iso:"2026-09-10",n:"10",dow:"Thu",title:"Fukuoka → Naha",route:"福岡 → 那覇 · DoubleTree Asahibashi",
+ maps:[{area:"ov",leg:3},{area:"naha",stops:["naha_ap","dt_naha"],ctx:["kokusai","umikaji"]}],
+ events:[
+ {id:"d10a",time:"am",title:"Morning free in Fukuoka",jp:"自由時間",loc:"Fukuoka",mapq:"大濠公園",note:"Ōhori Park, Kushida Shrine, or Canal City before the flight. See Ideas › Fukuoka.",trans:"—",ideas:"fukuoka"},
+ {id:"d10b",time:"15:55\n17:35",s:955,e:1055,title:"Fly to Naha",jp:"那覇へ",loc:"Naha Airport",mapq:"那覇空港",note:"15:55 → 17:35.",trans:"Flight"},
+ {id:"d10c",time:"eve",s:1080,e:1140,title:"Check in — DoubleTree Naha",jp:"ダブルツリーbyヒルトン那覇",loc:"Asahibashi 旭橋, Naha",mapq:"ダブルツリーbyヒルトン那覇",note:"Yui Rail 3 stops to Asahibashi; hotel is right by the station.",trans:"Yui Rail"},
+ {id:"d10d",time:"night",title:"Evening free",jp:"自由時間",loc:"Naha",mapq:"ジャッキーステーキハウス",note:"Jacky Steak House is nearby; or Kokusai-dōri. See Ideas › Naha.",trans:"—",ideas:"naha"}
+]},
+{iso:"2026-09-11",n:"11",dow:"Fri",title:"Home stretch",route:"那覇 · car pick-up 13:00",
+ maps:[{area:"naha",stops:["dt_naha"],ctx:["naha_ap","kokusai","umikaji"]}],
+ events:[
+ {id:"d11a",time:"am",title:"Morning free",jp:"自由時間",loc:"Naha",mapq:"波上宮",note:"Naminoue Shrine, Makishi market, or a slow breakfast.",trans:"—",ideas:"naha"},
+ {id:"d11b",time:"13:00",s:780,e:840,title:"Pick up car — Toyota dealer",jp:"トヨタで車を受け取り",loc:"Toyota dealer, Naha",mapq:"トヨタ 那覇市",note:"Maintenance done. Trip complete — safe drive home!",trans:"Taxi → Car"}
+]}
+];
+
+/* ---------------- ideas ---------------- */
+const IDEA_AREAS=[["yakushima","Yakushima 屋久島"],["fukuoka","Fukuoka 福岡"],["naha","Naha 那覇"]];
+const AREA_MAP={yakushima:"yaku",fukuoka:"fuk",naha:"naha"};
+const IDEA_TAGS=[["food","Food"],["sight","Sights"],["onsen","Onsen"],["rain","Rainy day"],["short","≤1 hour"],["shop","Shopping"],["sunset","Sunset"]];
+const IDEAS=[
+{a:"yakushima",name:"Onoaida Onsen",jp:"尾之間温泉",ll:[30.245,130.599],tags:["onsen","short"],mapq:"尾之間温泉",note:"Historic village hot spring ~5 min drive from sankara. Very hot source, a few hundred yen, bring your own towel."},
+{a:"yakushima",name:"Hirauchi Kaichū Onsen",jp:"平内海中温泉",ll:[30.238,130.565],tags:["onsen","sight"],mapq:"平内海中温泉",note:"Rock pools in the sea, bathable only ~2 h around low tide. Mixed bathing — check the tide table first.",ld:10},
+{a:"yakushima",name:"Ōko Falls",jp:"大川の滝",ll:[30.288,130.435],tags:["sight"],mapq:"大川の滝",note:"88 m, one of Japan's top-100 waterfalls; you can walk near the basin. ~40 min drive west of the hotel."},
+{a:"yakushima",name:"Seibu Rindō forest road",jp:"西部林道",ll:[30.345,130.425],tags:["sight"],mapq:"西部林道 屋久島",note:"UNESCO coastal road with wild monkeys and deer on the tarmac. Narrow — drive slowly; combines well with Ōko Falls."},
+{a:"yakushima",name:"Kigen-sugi Cedar",jp:"紀元杉",ll:[30.303,130.545],tags:["sight","short"],mapq:"紀元杉",note:"~3,000-year-old cedar you can drive right up to — 15 min past Yakusugi Land on the mountain road.",ld:10},
+{a:"yakushima",name:"Yakusugi Museum",jp:"屋久杉自然館",ll:[30.318,130.645],tags:["rain","short"],mapq:"屋久杉自然館",note:"In Anbo — the story of the ancient cedars. The best rainy/typhoon-day backup.",la:"end"},
+{a:"yakushima",name:"Yakushima Fruit Garden",jp:"屋久島フルーツガーデン",ll:[30.247,130.525],tags:["short","food"],mapq:"屋久島フルーツガーデン",note:"Tropical garden with a fruit tasting, southwest coast near Nakama.",ld:10},
+{a:"yakushima",name:"Shitogo Gajumaru Park",jp:"志戸子ガジュマル公園",ll:[30.445,130.535],tags:["short","sight"],mapq:"志戸子ガジュマル公園",note:"Banyan grove on the north coast — quick atmospheric stop near Miyanoura."},
+{a:"yakushima",name:"Nagata Inakahama Beach",jp:"永田いなか浜",ll:[30.393,130.428],tags:["sight","sunset"],mapq:"永田いなか浜",note:"Sea-turtle nesting beach and the island's best sunset. Far side of the island (~1 h) — only with time to spare."},
+{a:"yakushima",name:"Isso Beach",jp:"一湊海水浴場",ll:[30.447,130.492],tags:["sight"],mapq:"一湊海水浴場",note:"North-coast beach with the island's clearest swimming and snorkeling water.",ld:-8},
+{a:"yakushima",name:"Yaku Shrine",jp:"益救神社",ll:[30.423,130.577],tags:["short","sight"],mapq:"益救神社",note:"Old shrine in Miyanoura — 'the rescue shrine' for sea travelers.",la:"end"},
+{a:"yakushima",name:"Try tobiuo (flying fish)",jp:"飛魚料理",ll:[30.322,130.658],tags:["food"],mapq:"安房 飛魚 食事",note:"The island specialty — whole fried flying fish, tobiuo tempura. Most Anbo restaurants serve it.",la:"end"},
+{a:"fukuoka",name:"Nakasu yatai stalls",jp:"中洲屋台街",ll:[33.593,130.406],tags:["food"],mapq:"中洲屋台",note:"Open-air food stalls along the river from ~18:00 — ramen, yakitori, oden. Cash, small portions, hop between stalls.",ld:-8},
+{a:"fukuoka",name:"Motsunabe Ōyama",jp:"もつ鍋おおやま",ll:[33.590,130.420],tags:["food"],mapq:"もつ鍋おおやま 博多",note:"Famous offal hotpot — Hakata's group-dinner classic. Good candidate for the Sep 9 friends dinner; reserve ahead."},
+{a:"fukuoka",name:"Mizutaki Hanamidori",jp:"博多華味鳥",ll:[33.590,130.398],tags:["food"],mapq:"博多華味鳥",note:"Chicken hotpot, the gentler Hakata specialty. Several branches; also a solid friends-dinner pick.",la:"end",ld:10},
+{a:"fukuoka",name:"Ramen Shin-Shin (Tenjin)",jp:"博多らーめんShinShin天神本店",ll:[33.592,130.399],tags:["food","short"],mapq:"ShinShin 天神本店",note:"Classic thin-noodle tonkotsu. Queues move fast; great quick lunch.",ld:-8},
+{a:"fukuoka",name:"teamLab Forest",jp:"チームラボフォレスト",ll:[33.595,130.362],tags:["rain","sight"],mapq:"チームラボフォレスト 福岡",note:"Digital-art museum in BOSS E・ZO next to PayPay Dome — 5 min from the Hilton. Perfect rain option.",ld:-8},
+{a:"fukuoka",name:"Fukuoka Tower & Momochi",jp:"福岡タワー・シーサイドももち",ll:[33.593,130.351],tags:["sight","sunset"],mapq:"福岡タワー",note:"15-min walk from the Hilton; sunset over Hakata Bay from the 123 m deck.",ld:10},
+{a:"fukuoka",name:"Ōhori Park",jp:"大濠公園",ll:[33.586,130.376],tags:["sight","short"],mapq:"大濠公園",note:"Lakeside loop and a small Japanese garden — easy pre-flight morning stroll."},
+{a:"fukuoka",name:"Fukuoka Art Museum",jp:"福岡市美術館",ll:[33.584,130.377],tags:["rain","short"],mapq:"福岡市美術館",note:"In Ōhori Park — Dalí, Miró, and a famous giant Kusama pumpkin. Pairs with the park loop.",ld:12},
+{a:"fukuoka",name:"Kushida Shrine & Kawabata arcade",jp:"櫛田神社・川端商店街",ll:[33.593,130.410],tags:["sight","shop","rain"],mapq:"櫛田神社",note:"Hakata's shrine plus the covered shopping arcade next door.",ld:-6,la:"end"},
+{a:"fukuoka",name:"Canal City Hakata",jp:"キャナルシティ博多",ll:[33.589,130.411],tags:["shop","rain"],mapq:"キャナルシティ博多",note:"Big canal-side mall with the Ramen Stadium food floor.",ld:12},
+{a:"fukuoka",name:"Sumiyoshi Shrine",jp:"住吉神社",ll:[33.585,130.414],tags:["sight","short"],mapq:"住吉神社 福岡",note:"One of Japan's oldest Sumiyoshi shrines, quiet wooded grounds near Hakata Station.",ld:12},
+{a:"fukuoka",name:"Dazaifu Tenmangū",jp:"太宰府天満宮",ll:[33.521,130.535],tags:["sight"],mapq:"太宰府天満宮",note:"Grand shrine of learning, plum-groves and the omotesandō snack street. ~40 min by train from Tenjin — a half-day trip."},
+{a:"fukuoka",name:"Nishijin shopping street",jp:"西新商店街",ll:[33.582,130.359],tags:["food","shop","short"],mapq:"西新商店街",note:"Local everyday shōtengai one stop from the Hilton — street snacks, cheap eats.",ld:10},
+{a:"naha",name:"Shuri Castle Park",jp:"首里城公園",ll:[26.219,127.719],tags:["sight"],mapq:"首里城公園",note:"Next to the Sep 3 hotel. Main hall reconstruction is ongoing after the 2019 fire — walls, gates and city views still worth it.",ld:-8},
+{a:"naha",name:"Tamaudun Mausoleum",jp:"玉陵",ll:[26.217,127.714],tags:["sight","short"],mapq:"玉陵",note:"UNESCO royal tombs of the Ryūkyū kings, 5 min walk from Shuri Castle.",la:"end"},
+{a:"naha",name:"Shikinaen Garden",jp:"識名園",ll:[26.204,127.715],tags:["sight","short"],mapq:"識名園",note:"UNESCO royal garden blending Ryūkyū and Chinese styles — calm, rarely crowded.",ld:12},
+{a:"naha",name:"Kokusai-dōri",jp:"国際通り",ll:[26.214,127.686],tags:["shop","food"],mapq:"国際通り",note:"The mile-long main strip — souvenirs, awamori, snacks.",ld:-8},
+{a:"naha",name:"Makishi Public Market",jp:"第一牧志公設市場",ll:[26.214,127.689],tags:["food"],mapq:"第一牧志公設市場",note:"Pick seafood downstairs, have it cooked upstairs.",ld:6},
+{a:"naha",name:"Tsuboya Yachimun Street",jp:"壺屋やちむん通り",ll:[26.211,127.690],tags:["shop","short"],mapq:"壺屋やちむん通り",note:"Quiet stone-paved pottery lane off Kokusai-dōri.",ld:16},
+{a:"naha",name:"Jacky Steak House",jp:"ジャッキーステーキハウス",ll:[26.211,127.671],tags:["food"],mapq:"ジャッキーステーキハウス",note:"Okinawan-style steak institution near Asahibashi — walkable from the Sep 10 hotel.",ld:10,la:"end"},
+{a:"naha",name:"Fukushūen Garden",jp:"福州園",ll:[26.214,127.672],tags:["sight","short","rain"],mapq:"福州園",note:"Chinese-style walled garden 10 min from Asahibashi — a quick green escape.",ld:-8,la:"end"},
+{a:"naha",name:"Naminoue Shrine & Beach",jp:"波上宮",ll:[26.221,127.669],tags:["sight","short"],mapq:"波上宮",note:"Shrine on a cliff above the city beach — 15 min walk from Asahibashi.",ld:-8},
+{a:"naha",name:"Tomari Iyumachi fish market",jp:"泊いゆまち",ll:[26.228,127.677],tags:["food","short"],mapq:"泊いゆまち",note:"Fishermen's market — cheap maguro bowls and sashimi packs, morning to ~15:00."},
+{a:"naha",name:"Umikaji Terrace",jp:"瀬長島ウミカジテラス",ll:[26.177,127.645],tags:["sunset","food","sight"],mapq:"瀬長島ウミカジテラス",note:"White terraced cafes on Senaga Island by the airport — sunsets and landing planes. Great Sep 10 evening if energy allows.",ld:10},
+{a:"naha",name:"Ashibinaa Outlet",jp:"沖縄アウトレットモールあしびなー",ll:[26.158,127.655],tags:["shop"],mapq:"沖縄アウトレットモールあしびなー",note:"Outlet mall near the airport — could pair with the Sep 11 car pick-up."}
+];
+
+/* ---------------- info data ---------------- */
+const HOTELS=[
+{name:"DoubleTree by Hilton Naha Shuri Castle",jp:"ダブルツリーbyヒルトン那覇首里城",d:"Sep 3 · Hilton Honors",tel:"098-886-5454",mapq:"ダブルツリーbyヒルトン那覇首里城"},
+{name:"Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",d:"Sep 4 & Sep 9 · Hilton Honors",tel:"092-844-8111",mapq:"ヒルトン福岡シーホーク"},
+{name:"sankara hotel&spa yakushima",jp:"sankara hotel&spa 屋久島",d:"Sep 5–9 · Manasa Villa · free airport shuttle",tel:"0800-800-6007",mapq:"sankara hotel&spa 屋久島"},
+{name:"DoubleTree by Hilton Naha",jp:"ダブルツリーbyヒルトン那覇（旭橋）",d:"Sep 10 · Hilton Honors",tel:"098-862-0123",mapq:"ダブルツリーbyヒルトン那覇"}
+];
+const CHECKLIST=[
+{id:"c1",t:"Confirm all flight times + online check-in (JAL/JTA/JAC)"},
+{id:"c2",t:"Reserve Sep 9 dinner with friends in Fukuoka"},
+{id:"c3",t:"Confirm okas dinner upgrade night with sankara staff"},
+{id:"c4",t:"Driver's licenses (rental car + Toyota pick-up)"},
+{id:"c5",t:"Hilton Honors app — digital keys / rates"},
+{id:"c6",t:"Rain jackets + shoes with grip (Yakushima rains a lot)"},
+{id:"c7",t:"Insect repellent + sunscreen"},
+{id:"c8",t:"Onsen towels (local onsen don't provide them)"},
+{id:"c9",t:"Cash for yatai stalls, onsen, small shops"},
+{id:"c10",t:"Power banks charged for hike days"},
+{id:"c11",t:"Watch typhoon forecast (September!) — check day before each flight"}
+];
+const LINKS=[
+{t:"Yakushima weather (tenki.jp)",u:"https://tenki.jp/search/?keyword=%E5%B1%8B%E4%B9%85%E5%B3%B6"},
+{t:"Typhoon info (JMA)",u:"https://www.jma.go.jp/bosai/map.html#contents=typhoon"},
+{t:"JAL flight status",u:"https://www.jal.co.jp/jp/ja/dom/"},
+{t:"Yakushima tide table (for Hirauchi onsen)",u:"https://tenki.jp/search/?keyword=%E5%B1%8B%E4%B9%85%E5%B3%B6%20%E6%BD%AE"}
+];
+
+/* ---------------- state ---------------- */
+let db=null, sharedRef=null, checks={}, notes=[], notesCol=null;
+let sampleFn=null, sampleDead=false;
+let curDay=null, curTab="plan", ideaArea="yakushima", ideaTag=null;
+let askTurns=[], askCtl=null, askBusy=false;
+let noteTagFilter=null, showDone=false, editingNote=null;
+const NOTE_TAGS=[["memo","Memo"],["todo","To-do"],["buy","Buy"],["idea","Idea"],["later","Later"],["otherday","Other day"]];
+
+/* ---------------- day strip ---------------- */
+function buildStrip(){
+  const today=jstISO();
+  $("stripInner").innerHTML=DAYS.map(d=>
+    `<button class="daychip${d.iso===curDay?" sel":""}${d.iso===today?" today":""}" data-day="${d.iso}">
+      <div class="n">${d.n}</div><div class="w">${d.dow}</div></button>`).join("");
+  $("stripInner").querySelectorAll(".daychip").forEach(b=>b.onclick=()=>{curDay=b.dataset.day;setTab("plan");buildStrip();renderPlan();});
+}
+
+/* ---------------- plan ---------------- */
+function evStatus(d,ev){
+  const today=jstISO(), now=jstMin();
+  if(checks[ev.id]) return "done";
+  if(d.iso<today) return "past";
+  if(d.iso>today) return "";
+  if(ev.e!=null&&ev.e<=now) return "past";
+  if(ev.s!=null&&ev.s<=now&&(ev.e==null||now<ev.e)) return "now";
+  return "";
+}
+function dayMaps(d){ return (d.maps||[]).map(mapSVG).join("")+((d.maps&&d.maps.length)?MAP_CAP:""); }
+function renderPlan(){
+  const d=DAYS.find(x=>x.iso===curDay)||DAYS[0];
+  const today=jstISO(), now=jstMin();
+  let nowCard="";
+  if(d.iso===today){
+    const cur=d.events.find(ev=>ev.s!=null&&ev.s<=now&&ev.e!=null&&now<ev.e);
+    const nxt=d.events.find(ev=>ev.s!=null&&ev.s>now);
+    const pick=cur||nxt;
+    if(pick){
+      const h=Math.floor((pick.s-now)/60), m=(pick.s-now)%60;
+      const lead=cur?"Happening now":"Up next"+(pick.s>now?` · in ${h>0?h+" h ":""}${m} min`:"");
+      nowCard=`<div class="nowcard"><div class="k">${lead}</div><div class="t">${esc(pick.title)} <span class="jp">${esc(pick.jp||"")}</span></div><div class="m">${esc(pick.time.replace("\n"," – "))} · ${esc(pick.loc)}${pick.trans&&pick.trans!=="—"?" · "+esc(pick.trans):""}</div></div>`;
+    }
+  }
+  $("pane-plan").innerHTML=`
+    <div class="dayhead"><h2>Sep ${d.n} (${d.dow}) — ${esc(d.title)}</h2><div class="route">${esc(d.route)}</div></div>
+    ${nowCard}
+    ${dayMaps(d)}
+    <div class="tl">${d.events.map(ev=>evHTML(d,ev)).join("")}</div>`;
+  bindEvents($("pane-plan"));
+}
+function evHTML(d,ev){
+  const st=evStatus(d,ev);
+  const flags={tbd:"to decide",reserve:"book needed",confirm:"confirm time",decide:"flexible"};
+  const pin='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+  return `<div class="ev ${st}" data-ev="${ev.id}">
+    <div class="time">${esc(ev.time||"")}</div>
+    <div class="body">
+      <div class="title">${esc(ev.title)} <span class="jp">${esc(ev.jp||"")}</span></div>
+      ${ev.note?`<div class="note">${esc(ev.note)}</div>`:""}
+      <div class="meta">
+        <a class="chip map" target="_blank" rel="noopener" href="${M(ev.mapq||ev.loc)}">${pin}${esc(ev.loc)}</a>
+        ${ev.trans&&ev.trans!=="—"?`<span class="chip trans">${esc(ev.trans)}</span>`:""}
+        ${ev.flag?`<span class="chip flag">⚑ ${flags[ev.flag]||ev.flag}</span>`:""}
+        ${ev.ideas?`<button class="chip" data-ideas="${ev.ideas}">Ideas ›</button>`:""}
+        ${ev.ask?`<button class="chip askbtn" data-ask="${esc(ev.ask)}">Ask Claude</button>`:""}
+      </div>
+    </div>
+    <button class="tick" data-tick="${ev.id}" aria-label="mark done"><span></span></button>
+  </div>`;
+}
+function bindEvents(root){
+  root.querySelectorAll("[data-tick]").forEach(b=>b.onclick=()=>toggleCheck(b.dataset.tick));
+  root.querySelectorAll("[data-ideas]").forEach(b=>b.onclick=()=>{ideaArea=b.dataset.ideas;ideaTag=null;setTab("ideas");});
+  root.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{setTab("ask");$("askInput").value=b.dataset.ask;$("askInput").focus();});
+}
+
+/* ---------------- ideas ---------------- */
+function renderIdeas(){
+  $("ideaFilters").innerHTML=
+    IDEA_AREAS.map(([k,l])=>`<button class="fchip${ideaArea===k?" sel":""}" data-area="${k}">${l}</button>`).join("")
+    +`<div class="lbl">Filter by topic</div>`
+    +IDEA_TAGS.map(([k,l])=>`<button class="fchip${ideaTag===k?" sel":""}" data-tag="${k}">${l}</button>`).join("");
+  $("ideaFilters").querySelectorAll("[data-area]").forEach(b=>b.onclick=()=>{ideaArea=b.dataset.area;renderIdeas();});
+  $("ideaFilters").querySelectorAll("[data-tag]").forEach(b=>b.onclick=()=>{ideaTag=(ideaTag===b.dataset.tag?null:b.dataset.tag);renderIdeas();});
+  const pin='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+  const list=IDEAS.filter(i=>i.a===ideaArea&&(!ideaTag||i.tags.includes(ideaTag)));
+  $("ideaMap").innerHTML=list.length?mapSVG({area:AREA_MAP[ideaArea],ideas:list})+MAP_CAP:"";
+  $("ideaList").innerHTML=list.length?list.map((i,ix)=>`
+    <div class="idea">
+      <div class="num">${ix+1}</div>
+      <div class="bd">
+        <div class="title">${esc(i.name)} <span class="jp">${esc(i.jp)}</span></div>
+        <div class="note">${esc(i.note)}</div>
+        <div class="meta">
+          <a class="chip map" target="_blank" rel="noopener" href="${M(i.mapq)}">${pin}Map</a>
+          ${i.tags.map(t=>{const f=IDEA_TAGS.find(x=>x[0]===t);return `<span class="chip">${f?f[1]:t}</span>`}).join("")}
+        </div>
+      </div>
+    </div>`).join(""):`<div class="backup-note">Nothing matches this filter.</div>`;
+}
+
+/* ---------------- ask ---------------- */
+function tripBrief(){
+  let s="ITINERARY (Sep 2026, all times JST):\n";
+  for(const d of DAYS){
+    s+=`Sep ${d.n} ${d.dow} — ${d.title}: `;
+    s+=d.events.map(e=>`${e.time?e.time.replace("\n","-")+" ":""}${e.title}${e.flag?" ["+e.flag+"]":""}`).join("; ")+"\n";
+  }
+  s+="Hotels: "+HOTELS.map(h=>h.name+" ("+h.d+")").join("; ")+".\n";
+  return s;
+}
+function askRules(){
+  return "You are the pocket travel copilot for a 2-person family trip: Naha → Fukuoka → Yakushima (sankara hotel&spa, Mugio) → Fukuoka → Naha, Sep 3–11, 2026. Current time: "+jstStamp()+".\n\n"
+  +tripBrief()
+  +"\nAnswer for a phone screen: short, concrete, decision-ready. Recommend specific named places with Japanese names in parentheses, realistic travel times, and opening-hours cautions. September is typhoon season — mention weather checks when relevant. If unsure about current facts (hours, closures), say to verify locally. No markdown headers; plain text with short lines or dashes.";
+}
+function renderSuggest(){
+  $("askDays").innerHTML=`<div class="lbl">Day recommendations</div>`+
+    DAYS.map(d=>`<button class="fchip" data-d="${d.n}">9/${d.n}</button>`).join("");
+  $("askDays").querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{
+    const d=DAYS.find(x=>x.n===b.dataset.d);
+    sendAskText(`Give recommendations for Sep ${d.n} (${d.title}). Focus on the unplanned/free time and pending decisions in that day's schedule; suggest 3–5 concrete options with times that fit around the fixed items and short travel from where we are that day. Include Japanese names.`);
+  });
+  const sug=["Fill the free slot on Sep 8","Where should we book the Sep 9 dinner with friends?","Rainy-day plan on Yakushima","What to do near the Hilton Sea Hawk tonight?"];
+  $("suggest").innerHTML=askTurns.length?"":sug.map(t=>`<button class="fchip" data-s="${esc(t)}">${esc(t)}</button>`).join("");
+  $("suggest").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{sendAskText(b.dataset.s);});
+}
+function addMsg(cls,text){
+  const el=document.createElement("div");
+  el.className="msg "+cls; el.textContent=text;
+  $("chat").appendChild(el);
+  el.scrollIntoView({block:"end",behavior:"auto"});
+  return el;
+}
+function sendAsk(){
+  if(askBusy){ askCtl&&askCtl.abort(); return; }
+  const q=$("askInput").value.trim();
+  if(!q) return;
+  $("askInput").value="";
+  sendAskText(q);
+}
+async function sendAskText(q){
+  if(askBusy) return;
+  if(!sampleFn||sampleDead){ $("askOff").hidden=false; return; }
+  askTurns.push({role:"user",content:q});
+  while(askTurns.length>14) askTurns.splice(0,2);
+  addMsg("user",q);
+  const bubble=addMsg("bot thinking","Thinking…");
+  askBusy=true; $("askGo").textContent="Stop"; $("askGo").classList.add("stop");
+  renderSuggest();
+  askCtl=new AbortController();
+  try{
+    const {text}=await sampleFn([{role:"user",content:askRules()},...askTurns],{
+      cache:false, signal:askCtl.signal,
+      onText:({text})=>{bubble.classList.remove("thinking");bubble.textContent=text;bubble.scrollIntoView({block:"end"});}
+    });
+    bubble.classList.remove("thinking"); bubble.textContent=text;
+    askTurns.push({role:"assistant",content:text});
+  }catch(e){
+    bubble.classList.remove("thinking");
+    if(e&&e.code==="cancelled"){
+      if(e.text){bubble.textContent=e.text;askTurns.push({role:"assistant",content:e.text});}
+      else{bubble.remove();askTurns.pop();}
+    }else if(e&&["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)){
+      sampleDead=true; bubble.remove(); askTurns.pop(); $("askOff").hidden=false;
+    }else if(e&&e.code==="refused"){
+      bubble.textContent="Claude declined that one — try rephrasing."; askTurns.pop();
+    }else if(e&&e.code==="rate_limited"){
+      bubble.textContent=(e.text?e.text+"\n\n":"")+"⚠ Rate limited — wait a bit and try again."; askTurns.pop();
+    }else{
+      bubble.textContent=(e&&e.text?e.text+"\n\n":"")+"⚠ Connection hiccup — try again."; askTurns.pop();
+    }
+  }finally{
+    askBusy=false; askCtl=null;
+    $("askGo").textContent="Ask"; $("askGo").classList.remove("stop");
+    bubble.scrollIntoView({block:"end"});
+  }
+}
+
+/* ---------------- notes ---------------- */
+function noteWrite(n){ /* persist one note (upsert) */
+  if(notesCol){ notesCol.doc(n.id).set({text:n.text,ts:n.ts,tag:n.tag,done:!!n.done}).catch(()=>{}); }
+  else{ lsSet("notes",notes); renderNotes(); }
+}
+function renderNotes(){
+  const usedTags=[...new Set(notes.map(n=>n.tag||"memo"))];
+  $("noteFilters").innerHTML=`<button class="fchip${!noteTagFilter?" sel":""}" data-t="">All</button>`+
+    NOTE_TAGS.filter(([k])=>usedTags.includes(k)).map(([k,l])=>`<button class="fchip${noteTagFilter===k?" sel":""}" data-t="${k}">${l}</button>`).join("");
+  $("noteFilters").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{noteTagFilter=b.dataset.t||null;renderNotes();});
+  const vis=notes.filter(n=>(showDone||!n.done)&&(!noteTagFilter||(n.tag||"memo")===noteTagFilter));
+  const doneN=notes.filter(n=>n.done).length;
+  $("showDoneBtn").textContent=showDone?`Hide checked (${doneN})`:`Show checked (${doneN})`;
+  $("showDoneBtn").hidden=doneN===0;
+  $("noteList").innerHTML=vis.length?vis.map(n=>{
+    const dt=new Date(n.ts).toLocaleString("en-GB",{timeZone:"Asia/Tokyo",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+    const tag=n.tag||"memo";
+    const tl=(NOTE_TAGS.find(x=>x[0]===tag)||["memo","Memo"])[1];
+    const body=editingNote===n.id
+      ?`<input class="editbox" id="editBox" value="${esc(n.text)}" maxlength="500">`
+      :`<div class="txt">${esc(n.text)}</div>`;
+    return `<div class="note-item${n.done?" done":""}" data-id="${esc(n.id)}">
+      <button class="ntick" data-ndone="${esc(n.id)}" aria-label="check note"><span></span></button>
+      <div class="bd">${body}
+        <div class="sub"><span class="tagchip ${tag}">${tl}</span><span class="when">${dt}</span></div>
+      </div>
+      ${editingNote===n.id
+        ?`<button class="act" data-nsave="${esc(n.id)}">✔</button>`
+        :`<button class="act" data-nedit="${esc(n.id)}">✎</button>`}
+      <button class="act" data-ndel="${esc(n.id)}">✕</button>
+    </div>`;
+  }).join(""):`<div class="backup-note">${notes.length?"Nothing here — change the filter or show checked notes.":"Shared notes both of you can see — drop links, room numbers, to-dos, anything. Tag them to keep sorted."}</div>`;
+  $("noteList").querySelectorAll("[data-ndone]").forEach(b=>b.onclick=()=>{
+    const n=notes.find(x=>x.id===b.dataset.ndone); if(!n)return;
+    n.done=!n.done; noteWrite(n); if(!notesCol)renderNotes();
+  });
+  $("noteList").querySelectorAll("[data-ndel]").forEach(b=>b.onclick=()=>{
+    if(notesCol){ notesCol.doc(b.dataset.ndel).delete().catch(()=>{}); }
+    else{ notes=notes.filter(n=>n.id!==b.dataset.ndel); lsSet("notes",notes); renderNotes(); }
+  });
+  $("noteList").querySelectorAll("[data-nedit]").forEach(b=>b.onclick=()=>{
+    editingNote=b.dataset.nedit; renderNotes();
+    const box=$("editBox"); if(box){box.focus();box.setSelectionRange(box.value.length,box.value.length);
+      box.addEventListener("keydown",e=>{if(e.key==="Enter")saveEdit();if(e.key==="Escape"){editingNote=null;renderNotes();}});}
+  });
+  $("noteList").querySelectorAll("[data-nsave]").forEach(b=>b.onclick=saveEdit);
+}
+function saveEdit(){
+  const box=$("editBox"); if(!box){editingNote=null;renderNotes();return;}
+  const n=notes.find(x=>x.id===editingNote);
+  const t=box.value.trim();
+  editingNote=null;
+  if(n&&t&&t!==n.text){ n.text=t; noteWrite(n); }
+  renderNotes();
+}
+function addNote(){
+  const t=$("noteInput").value.trim();
+  if(!t)return;
+  $("noteInput").value="";
+  const n={id:"n"+Date.now()+Math.random().toString(36).slice(2,6),text:t,ts:Date.now(),tag:$("noteTag").value,done:false};
+  if(notesCol){ notesCol.doc(n.id).set({text:n.text,ts:n.ts,tag:n.tag,done:false}).catch(()=>{}); }
+  else{ notes.unshift(n); lsSet("notes",notes); renderNotes(); }
+}
+
+/* ---------------- checks ---------------- */
+function toggleCheck(id){
+  checks[id]=!checks[id]; if(!checks[id]) delete checks[id];
+  if(sharedRef){ sharedRef.set({checks:{...checks}}).catch(()=>{}); }
+  else lsSet("checks",checks);
+  refreshChecksUI();
+}
+function refreshChecksUI(){
+  if(curTab==="plan") renderPlan();
+  if(curTab==="info") renderInfo();
+}
+
+/* ---------------- info ---------------- */
+function renderInfo(){
+  const pin='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+  $("pane-info").innerHTML=`
+  <h3 class="sec">The whole journey</h3>
+  ${mapSVG({area:"ov"})}
+  <div class="map-cap">Naha → Fukuoka → Yakushima → Fukuoka → Naha. Schematic map.</div>
+  <h3 class="sec">Hotels</h3>
+  ${HOTELS.map(h=>`<div class="card"><div class="t">${esc(h.name)}</div><div class="jp2">${esc(h.jp)}</div><div class="d">${esc(h.d)}</div>
+    <div class="meta"><a class="chip map" target="_blank" rel="noopener" href="${M(h.mapq)}">${pin}Map</a><a class="chip" href="tel:${h.tel}">☎ ${h.tel}</a></div></div>`).join("")}
+  <h3 class="sec">Flights & car</h3>
+  <div class="card">
+    <div class="d">Sep 4 — Naha → Fukuoka, arrive ≈ 12:10 (confirm)</div>
+    <div class="d">Sep 5 — Fukuoka → Yakushima, 13:50 → 15:00 (confirm)</div>
+    <div class="d">Sep 9 — Yakushima → Fukuoka, dep ≈ 16:45 (confirm)</div>
+    <div class="d">Sep 10 — Fukuoka → Naha, 15:55 → 17:35</div>
+    <div class="d" style="margin-top:6px">Rental car on Yakushima: Sep 6 (9–15), Sep 7 (10–15), Sep 8 (10–16)</div>
+    <div class="d">Own car: at Toyota Naha Sep 3 → pick up Sep 11, 13:00</div>
+  </div>
+  <h3 class="sec">Checklist <span class="jp2" style="font-weight:400">(shared)</span></h3>
+  <div class="card" id="checklist">
+    ${CHECKLIST.map(c=>`<div class="checkrow${checks[c.id]?" on":""}" data-chk="${c.id}"><span class="box"></span><span>${esc(c.t)}</span></div>`).join("")}
+  </div>
+  <h3 class="sec">Useful links</h3>
+  <div class="card">${LINKS.map(l=>`<div class="d" style="margin:4px 0"><a target="_blank" rel="noopener" href="${l.u}">${esc(l.t)}</a></div>`).join("")}</div>
+  <h3 class="sec">Offline backup</h3>
+  <button class="fchip" id="printBtn">Open print view (all days)</button>
+  <div class="backup-note">Yakushima's mountains have weak signal. Use your browser's Share → Print/PDF on the print view, or screenshot each day, before heading up.</div>`;
+  $("pane-info").querySelectorAll("[data-chk]").forEach(r=>r.onclick=()=>toggleCheck(r.dataset.chk));
+  $("printBtn").onclick=()=>{
+    setTab("plan");
+    const w=$("pane-plan");
+    w.innerHTML=DAYS.map(d=>`
+      <div class="dayhead"><h2>Sep ${d.n} (${d.dow}) — ${esc(d.title)}</h2><div class="route">${esc(d.route)}</div></div>
+      ${dayMaps(d)}
+      <div class="tl">${d.events.map(ev=>evHTML(d,ev)).join("")}</div>`).join("");
+    bindEvents(w);
+    window.scrollTo(0,0);
+  };
+}
+
+/* ---------------- tabs ---------------- */
+function setTab(t){
+  curTab=t;
+  document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("sel",p.id==="pane-"+t));
+  document.querySelectorAll("nav [data-tab]").forEach(b=>b.classList.toggle("sel",b.dataset.tab===t));
+  $("askbar").classList.toggle("sel",t==="ask");
+  $("strip").style.display=(t==="plan")?"":"none";
+  if(t==="plan")renderPlan();
+  if(t==="ideas")renderIdeas();
+  if(t==="ask")renderSuggest();
+  if(t==="notes")renderNotes();
+  if(t==="info")renderInfo();
+}
+document.querySelectorAll("nav [data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+$("noteAdd").onclick=addNote;
+$("noteInput").addEventListener("keydown",e=>{if(e.key==="Enter")addNote();});
+$("noteTag").innerHTML=NOTE_TAGS.map(([k,l])=>`<option value="${k}">${l}</option>`).join("");
+$("showDoneBtn").onclick=()=>{showDone=!showDone;renderNotes();};
+$("askGo").onclick=sendAsk;
+$("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAsk();}});
+
+/* ---------------- boot ---------------- */
+(function boot(){
+  const today=jstISO();
+  curDay=(DAYS.find(d=>d.iso===today)||DAYS[0]).iso;
+  if(today>DAYS[DAYS.length-1].iso) curDay=DAYS[DAYS.length-1].iso;
+  checks=lsGet("checks",{});
+  notes=lsGet("notes",[]);
+  buildStrip(); renderPlan();
+  setInterval(()=>{ if(curTab==="plan")renderPlan(); },60000);
+
+  if(window.claude&&claude.use){
+    claude.use("db").then(d=>{
+      if(!d)return;
+      db=d;
+      sharedRef=db.doc("trip/shared");
+      sharedRef.onSnapshot(snap=>{
+        if(snap.exists){ checks=(snap.data().checks)||{}; }
+        $("sync").classList.add("on"); $("syncTxt").textContent="synced";
+        refreshChecksUI();
+      },()=>{ $("sync").classList.remove("on"); $("syncTxt").textContent="local"; });
+      notesCol=db.collection("notes");
+      notesCol.orderBy("ts","desc").limit(200).onSnapshot(snap=>{
+        notes=snap.docs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()}));
+        if(curTab==="notes")renderNotes();
+      },()=>{});
+    }).catch(()=>{});
+    claude.use("sample").then(s=>{
+      if(s){ sampleFn=s; }
+      else if(curTab==="ask"){ $("askOff").hidden=false; }
+    }).catch(()=>{});
+  }
+})();
+</script>
