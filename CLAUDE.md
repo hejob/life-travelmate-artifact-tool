@@ -1,0 +1,26 @@
+# TravelMate — working notes for Claude
+
+Trip companion app ("Sankara Days") for a 2-person family trip, Sep 3–11, 2026:
+Naha → Fukuoka → Yakushima (sankara hotel&spa) → Fukuoka → Naha. See README.md and PROMPT-INIT.md.
+
+## Published artifacts (do not create new ones — always update these URLs)
+
+- Full (capabilities db + sample, account-internal): https://claude.ai/code/artifact/52b50ec3-13d1-4b18-bf75-b0bb194602f2
+- Lite (no capabilities, publicly shared): https://claude.ai/code/artifact/da231446-0040-4a53-82b2-c458357e6929
+
+## Update workflow — ALWAYS keep both artifacts in lockstep
+
+1. Edit `app/sankara-days.html` ONLY. Never hand-edit `app/sankara-days-lite.html` (generated).
+2. Run `scripts/build-lite.sh` (flips the `const LITE=false;` flag, retitles to "Sankara Days Lite").
+3. Republish both files to their artifact URLs above (pass the URL as `url`; capabilities are stored per artifact and carry forward — never re-declare them, and never add db/sample to Lite: any Claude capability blocks public sharing).
+4. `git commit` and `git push` (remote: git@github.com:hejob/life-travelmate-artifact-tool.git).
+
+Publish warnings on Lite about `use("db")`/`use("sample")` being undeclared are expected — that code is LITE-guarded fallback; ignore them.
+
+## App conventions
+
+- Single self-contained HTML file, vanilla JS, no build step besides the Lite copy.
+- Maps are schematic inline SVGs projected from real lat/lng (external map tiles are CSP-blocked in artifacts). Places live in `PL`, land polygons in `YAKU`/`FUK_LAND`/etc.; markers link to Google Maps.
+- All times are JST (`Asia/Tokyo` via Intl); itinerary data is the `DAYS` array; ideas in `IDEAS` (with `ll` coords); shared state via db doc `trip/shared` (checks) + collection `notes`, with localStorage fallback.
+- English + Japanese place names everywhere; keep both when adding content.
+- Facts marked "confirm" in the plan (flight times) are user-provided estimates; verify transport/hours claims via web search before hardcoding them (as done for the Hilton Sea Hawk shuttle).
