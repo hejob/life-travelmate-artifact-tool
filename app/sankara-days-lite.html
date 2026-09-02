@@ -211,6 +211,27 @@ h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
 .brow .bv.empty{color:var(--done)}
 .brow input{width:100%;border:1px solid var(--moss);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 8px;font:inherit;font-size:14px}
 
+/* schedule editing */
+.editbar{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.editbar .fchip.on{background:var(--moss);color:#fff;border-color:var(--moss);font-weight:600}
+.fchip.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
+.edited{font-size:11.5px;color:var(--amber);margin-top:6px}
+.ev.editing{border-style:dashed}
+.ev.dragging{opacity:.9;border-color:var(--moss);box-shadow:0 8px 22px rgba(0,0,0,.20)}
+.evacts{display:flex;flex-direction:column;gap:5px;align-items:center;flex:0 0 30px}
+.evacts button{width:28px;height:26px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);color:var(--ink2);font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center}
+.evacts button.del{color:var(--amber)}
+.evacts button.del.arm{width:auto;padding:0 7px;font-size:10.5px;font-weight:700;background:var(--amber-soft);border-color:var(--amber)}
+.evacts .handle{touch-action:none;cursor:grab;font-size:15px}
+.evform{background:var(--surface);border:1.5px solid var(--moss);border-radius:14px;padding:12px 13px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
+.evform label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin-top:3px}
+.evform input,.evform textarea,.evform select{width:100%;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:7px 9px;font:inherit;font-size:14px}
+.evform textarea{resize:vertical;min-height:54px}
+.evform .row2{display:flex;gap:7px}
+.evform .btns{display:flex;gap:7px;margin-top:7px}
+.evform .btns button{flex:1;border-radius:10px;padding:9px 0;font-weight:600;border:1px solid var(--line);background:var(--surface2)}
+.evform .btns button.pri{background:var(--moss);color:#fff;border-color:var(--moss)}
+
 /* text sheet (offline copy-out) */
 .sheet{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line);z-index:45;padding:10px 14px 12px;display:none;box-shadow:0 -8px 24px rgba(0,0,0,.14)}
 .sheet.on{display:block}
@@ -233,7 +254,7 @@ nav button.sel{color:var(--moss);font-weight:600}
   @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 }
 @media print{
-  nav,.strip,.askbar,.sheet,.dayhead .acts,header .sync{display:none}
+  nav,.strip,.askbar,.sheet,.dayhead .acts,.editbar,.evacts,header .sync{display:none}
   body{padding-bottom:0;background:#fff;color:#000}
 }
 </style>
@@ -287,6 +308,7 @@ nav button.sel{color:var(--moss);font-weight:600}
   <div class="hd">
     <strong id="sheetTitle"></strong>
     <span class="sp"></span>
+    <button class="fchip" id="sheetAct" hidden></button>
     <button class="fchip" id="sheetCopy">Copy</button>
     <button class="fchip" id="sheetClose">Close</button>
   </div>
@@ -639,17 +661,86 @@ const BOOKINGS=[
 ];
 
 /* ---------------- state ---------------- */
-let db=null, sharedRef=null, checks={}, bookings={}, notes=[], notesCol=null;
+let db=null, sharedRef=null, checks={}, bookings={}, plan={}, notes=[], notesCol=null;
 let sampleFn=null, sampleDead=false;
 let curDay=null, curTab="plan", ideaArea="yakushima", ideaTag=null;
 let askTurns=[], askCtl=null, askBusy=false;
 let noteTagFilter=null, showDone=false, editingNote=null, editingBk=null;
+let editMode=false, editingEv=null, pendingDel=null, pendingReset=null;
 const NOTE_TAGS=[["memo","Memo"],["todo","To-do"],["buy","Buy"],["idea","Idea"],["later","Later"],["otherday","Other day"]];
 
 /* ---------------- shared doc (checks + bookings) ---------------- */
 function shareWrite(){
-  if(sharedRef){ sharedRef.set({checks:{...checks},bookings:{...bookings}}).catch(()=>{}); }
-  else{ lsSet("checks",checks); lsSet("bookings",bookings); }
+  if(sharedRef){ sharedRef.set({checks:{...checks},bookings:{...bookings},plan:{...plan}}).catch(()=>{}); }
+  else{ lsSet("checks",checks); lsSet("bookings",bookings); lsSet("plan",plan); }
+}
+
+/* ---------------- editable schedule ----------------
+   DAYS is the built-in plan. `plan[iso]`, when present, replaces that day's
+   events wholesale — which makes per-day edit, reset, export and import all
+   the same operation. Everything downstream reads through effDay/allDays. */
+const EV_FIELDS=["id","time","title","jp","loc","mapq","note","trans","site","flag","flno","ideas","ask"];
+const FLAG_OPTS=[["","— no flag —"],["tbd","to decide"],["reserve","book needed"],["confirm","confirm time"],["decide","flexible"]];
+function effDay(d){ return plan[d.iso]?{...d,events:plan[d.iso]}:d; }
+function allDays(){ return DAYS.map(effDay); }
+function dayFor(iso){ const b=DAYS.find(x=>x.iso===iso); return b?effDay(b):null; }
+function ensurePlan(iso){
+  if(!plan[iso]) plan[iso]=(DAYS.find(d=>d.iso===iso)||{events:[]}).events.map(e=>({...e}));
+  return plan[iso];
+}
+function newEvId(){ return "x"+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+function hhmm(x){ const r=/^(\d{1,2}):(\d{2})$/.exec(String(x||"").trim()); if(!r)return null;
+  const h=+r[1],m=+r[2]; return (h>23||m>59)?null:h*60+m; }
+function evTiming(t1,t2){
+  const a=hhmm(t1), b=hhmm(t2), out={};
+  if(a!=null){ out.s=a; if(b!=null&&b>a) out.e=b; out.time=(b!=null&&b>a)?t1.trim()+"\n"+t2.trim():t1.trim(); }
+  else { const f=String(t1||"").trim(); if(f) out.time=f; }
+  return out;
+}
+function sanitizeEv(o){
+  if(!o||typeof o!=="object") return null;
+  const e={};
+  for(const k of EV_FIELDS){ const v=o[k]; if(v!=null&&v!=="") e[k]=String(v).slice(0,800); }
+  if(!e.title) return null;
+  if(e.site&&!/^https?:\/\//i.test(e.site)) delete e.site;
+  if(!e.id) e.id=newEvId();
+  for(const k of ["s","e"]){ const v=o[k]; if(typeof v==="number"&&isFinite(v)) e[k]=Math.max(0,Math.min(1439,Math.round(v))); }
+  if(e.e!=null&&e.s==null) delete e.e;
+  return e;
+}
+function planExport(iso){
+  const days={};
+  if(iso){ const d=dayFor(iso); if(d) days[iso]=d.events; }
+  else for(const d of allDays()) days[d.iso]=d.events;
+  return JSON.stringify({app:"sankara-days",version:1,exported:jstStamp(),days},null,1);
+}
+function planImport(text,iso){
+  let j; try{ j=JSON.parse(text); }catch(err){ return "That isn't valid JSON."; }
+  let map={};
+  if(Array.isArray(j)){
+    if(!iso) return "This file is a bare list of items — import it from a day so it knows which date to replace.";
+    map[iso]=j;
+  }else if(j&&typeof j==="object"){
+    const src=(j.days&&typeof j.days==="object")?j.days:j;
+    for(const k of Object.keys(src)) if(/^\d{4}-\d{2}-\d{2}$/.test(k)&&Array.isArray(src[k])) map[k]=src[k];
+    if(iso){
+      const keys=Object.keys(map);
+      const arr=map[iso]||(keys.length===1?map[keys[0]]:null);
+      if(!arr) return "No items for "+iso+" in that file.";
+      map={}; map[iso]=arr;
+    }
+  }
+  const known=new Set(DAYS.map(d=>d.iso));
+  let n=0, skipped=0;
+  for(const k of Object.keys(map)){
+    if(!known.has(k)){ skipped++; continue; }
+    const evs=map[k].map(sanitizeEv).filter(Boolean);
+    if(!evs.length){ skipped++; continue; }
+    plan[k]=evs; n++;
+  }
+  if(!n) return "Nothing imported — no usable items for dates in this trip.";
+  shareWrite();
+  return {ok:n,skipped};
 }
 
 /* ---------------- sun + tide ---------------- */
@@ -704,7 +795,7 @@ function dayText(d){
 }
 function tripText(){
   let s=`SANKARA DAYS \u2014 Sep 3\u201311, 2026 \u00b7 all times JST\nSaved ${jstStamp()}\n\n`;
-  s+=DAYS.map(dayText).join("\n");
+  s+=allDays().map(dayText).join("\n");
   s+=`\n\u2500\u2500 HOTELS\n`;
   s+=HOTELS.map(h=>`${h.name}  ${h.jp}\n    ${h.d}\n    TEL ${h.tel}`).join("\n")+"\n";
   s+=`\n\u2500\u2500 EMERGENCY & LOGISTICS\n`;
@@ -715,12 +806,19 @@ function tripText(){
   s+=CHECKLIST.map(c=>`[${checks[c.id]?"x":" "}] ${c.t}`).join("\n")+"\n";
   return s;
 }
-function openSheet(title,text,hint){
+function openSheet(title,text,hint,opt){
+  opt=opt||{};
   $("sheetTitle").textContent=title;
-  $("sheetText").value=text;
+  const ta=$("sheetText");
+  ta.value=text; ta.readOnly=!opt.editable;
   $("sheetHint").textContent=hint||"Copy this into your phone\u2019s Notes or LINE \u2014 it stays readable with no signal.";
+  $("sheetCopy").hidden=!!opt.editable;
+  const act=$("sheetAct");
+  if(opt.action){ act.hidden=false; act.textContent=opt.action.label; act.onclick=opt.action.fn; }
+  else { act.hidden=true; act.onclick=null; }
   $("sheet").classList.add("on");
-  $("sheetText").scrollTop=0;
+  ta.scrollTop=0;
+  if(opt.editable) ta.focus();
 }
 
 /* ---------------- day strip ---------------- */
@@ -729,7 +827,10 @@ function buildStrip(){
   $("stripInner").innerHTML=DAYS.map(d=>
     `<button class="daychip${d.iso===curDay?" sel":""}${d.iso===today?" today":""}" data-day="${d.iso}">
       <div class="n">${d.n}</div><div class="w">${d.dow}</div></button>`).join("");
-  $("stripInner").querySelectorAll(".daychip").forEach(b=>b.onclick=()=>{curDay=b.dataset.day;setTab("plan");buildStrip();renderPlan();});
+  $("stripInner").querySelectorAll(".daychip").forEach(b=>b.onclick=()=>{
+    curDay=b.dataset.day; editingEv=null; pendingDel=null; pendingReset=null;
+    setTab("plan"); buildStrip(); renderPlan();
+  });
 }
 
 /* ---------------- plan ---------------- */
@@ -744,7 +845,7 @@ function evStatus(d,ev){
 }
 function dayMaps(d){ return (d.maps||[]).map(mapSVG).join("")+((d.maps&&d.maps.length)?MAP_CAP:""); }
 function renderPlan(){
-  const d=DAYS.find(x=>x.iso===curDay)||DAYS[0];
+  const d=dayFor(curDay)||effDay(DAYS[0]);
   const today=jstISO(), now=jstMin();
   let nowCard="";
   if(d.iso===today){
@@ -759,14 +860,21 @@ function renderPlan(){
   }
   $("pane-plan").innerHTML=`
     <div class="dayhead"><h2>Sep ${d.n} (${d.dow}) — ${esc(d.title)}</h2><div class="route">${esc(d.route)}</div>
-      <div class="acts"><button class="fchip" id="copyDay">⤓ Save this day offline</button></div>
+      <div class="acts">
+        <button class="fchip" id="copyDay">⤓ Save this day offline</button>
+        <button class="fchip${editMode?" on":""}" id="editToggle">${editMode?"✓ Done editing":"✎ Edit day"}</button>
+      </div>
+      ${plan[d.iso]?`<div class="edited">✎ This day has been edited — the built-in plan is still there under Reset.</div>`:""}
     </div>
+    ${editMode?editBar(d):""}
     ${condStrip(d)}
-    ${nowCard}
-    ${dayMaps(d)}
-    <div class="tl">${d.events.map(ev=>evHTML(d,ev)).join("")}</div>`;
+    ${editMode?"":nowCard}
+    ${editMode?"":dayMaps(d)}
+    <div class="tl">${d.events.map(ev=>ev.id===editingEv?evForm(ev):evHTML(d,ev)).join("")}</div>`;
   bindEvents($("pane-plan"));
   $("copyDay").onclick=()=>openSheet(`Sep ${d.n} — ${d.title}`,dayText(d));
+  $("editToggle").onclick=()=>{editMode=!editMode;editingEv=null;pendingDel=null;pendingReset=null;renderPlan();};
+  if(editMode) bindEdit(d);
 }
 function evHTML(d,ev){
   const st=evStatus(d,ev);
@@ -787,8 +895,161 @@ function evHTML(d,ev){
         ${ev.ask&&!LITE?`<button class="chip askbtn" data-ask="${esc(ev.ask)}">Ask Claude</button>`:""}
       </div>
     </div>
-    <button class="tick" data-tick="${ev.id}" aria-label="mark done"><span></span></button>
+    ${editMode
+      ?`<div class="evacts">
+          <button data-eedit="${ev.id}" aria-label="edit item">✎</button>
+          <button class="del${pendingDel===ev.id?" arm":""}" data-edel="${ev.id}" aria-label="delete item">${pendingDel===ev.id?"Delete?":"✕"}</button>
+          ${editingEv?"":`<button class="handle" data-drag="${ev.id}" aria-label="drag to reorder">⠿</button>`}
+        </div>`
+      :`<button class="tick" data-tick="${ev.id}" aria-label="mark done"><span></span></button>`}
   </div>`;
+}
+
+/* ---------------- schedule editor ---------------- */
+function editBar(d){
+  return `<div class="editbar">
+    <button class="fchip" id="evAdd">+ Add item</button>
+    <button class="fchip" id="dayExport">⤓ Export day JSON</button>
+    <button class="fchip" id="dayImport">⤒ Import day JSON</button>
+    ${plan[d.iso]?`<button class="fchip warn" id="dayReset">${pendingReset===d.iso?"Reset — tap again":"↺ Reset day"}</button>`:""}
+  </div>`;
+}
+function evForm(ev){
+  const t=(ev.time||"").split("\n");
+  const v=x=>esc(x||"");
+  return `<div class="evform" data-form="${ev.id}">
+    <label>Time — HH:MM, or a word like “eve”</label>
+    <div class="row2">
+      <input id="f_t1" value="${v(t[0])}" placeholder="13:30 / am / eve">
+      <input id="f_t2" value="${v(t[1])}" placeholder="until 15:00">
+    </div>
+    <label>Title</label>
+    <input id="f_title" value="${v(ev.title)}" placeholder="What happens">
+    <label>Japanese</label>
+    <input id="f_jp" value="${v(ev.jp)}" placeholder="日本語">
+    <label>Place</label>
+    <input id="f_loc" value="${v(ev.loc)}" placeholder="Shown on the map chip">
+    <label>Map search — blank uses the place</label>
+    <input id="f_mapq" value="${v(ev.mapq)}" placeholder="屋久島空港">
+    <label>Note</label>
+    <textarea id="f_note" placeholder="Anything worth reading on the day">${v(ev.note)}</textarea>
+    <div class="row2">
+      <div style="flex:1"><label>Transport</label><input id="f_trans" value="${v(ev.trans)}" placeholder="Car / Flight"></div>
+      <div style="flex:1"><label>Flag</label><select id="f_flag">${FLAG_OPTS.map(([k,l])=>`<option value="${k}"${(ev.flag||"")===k?" selected":""}>${esc(l)}</option>`).join("")}</select></div>
+    </div>
+    <div class="row2">
+      <div style="flex:1"><label>Flight no.</label><input id="f_flno" value="${v(ev.flno)}" placeholder="JAL3676"></div>
+      <div style="flex:2"><label>Official site</label><input id="f_site" value="${v(ev.site)}" placeholder="https://…"></div>
+    </div>
+    <div class="btns"><button class="pri" id="f_save">Save</button><button id="f_cancel">Cancel</button></div>
+  </div>`;
+}
+function evFormSave(){
+  const g=id=>{const el=$(id);return el?el.value:"";};
+  const evs=ensurePlan(curDay);
+  const i=evs.findIndex(x=>x.id===editingEv);
+  if(i<0){ editingEv=null; renderPlan(); return; }
+  const next=sanitizeEv({
+    id:evs[i].id, ideas:evs[i].ideas, ask:evs[i].ask,
+    title:g("f_title")||"Untitled", jp:g("f_jp"), loc:g("f_loc")||"—",
+    mapq:g("f_mapq")||g("f_loc"), note:g("f_note"), trans:g("f_trans"),
+    flag:g("f_flag"), flno:g("f_flno"), site:g("f_site").trim(),
+    ...evTiming(g("f_t1"),g("f_t2"))
+  });
+  if(next) evs[i]=next;
+  editingEv=null; shareWrite(); renderPlan();
+}
+function bindEdit(d){
+  const root=$("pane-plan");
+  root.querySelectorAll("[data-eedit]").forEach(b=>b.onclick=()=>{
+    editingEv=b.dataset.eedit; pendingDel=null; renderPlan();
+    const t=$("f_title"); if(t) t.focus();
+  });
+  root.querySelectorAll("[data-edel]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.edel;
+    if(pendingDel!==id){ pendingDel=id; renderPlan(); return; }
+    const evs=ensurePlan(curDay);
+    plan[curDay]=evs.filter(x=>x.id!==id);
+    pendingDel=null; shareWrite(); renderPlan();
+  });
+  const sv=$("f_save"), cx=$("f_cancel");
+  if(sv) sv.onclick=evFormSave;
+  if(cx) cx.onclick=()=>{editingEv=null;renderPlan();};
+  const add=$("evAdd");
+  if(add) add.onclick=()=>{
+    const evs=ensurePlan(curDay);
+    const ev={id:newEvId(),time:"",title:"New item",loc:"—"};
+    evs.push(ev); editingEv=ev.id; shareWrite(); renderPlan();
+    const t=$("f_title"); if(t){t.focus();t.select();}
+  };
+  const ex=$("dayExport");
+  if(ex) ex.onclick=()=>openSheet(`Sep ${d.n} — JSON`,planExport(d.iso),
+    "One day's items. Copy it out as a backup, or paste it back through Import to restore this day.");
+  const im=$("dayImport");
+  if(im) im.onclick=()=>openImport(d.iso,`Import into Sep ${d.n}`);
+  const rs=$("dayReset");
+  if(rs) rs.onclick=()=>{
+    if(pendingReset!==d.iso){ pendingReset=d.iso; renderPlan(); return; }
+    delete plan[d.iso]; pendingReset=null; shareWrite(); renderPlan();
+  };
+  bindDrag(root);
+}
+function bindDrag(root){
+  const list=root.querySelector(".tl");
+  if(!list) return;
+  root.querySelectorAll("[data-drag]").forEach(h=>{
+    h.addEventListener("pointerdown",down=>{
+      const row=h.closest(".ev"); if(!row) return;
+      down.preventDefault();
+      try{ h.setPointerCapture(down.pointerId); }catch(e){}
+      row.classList.add("dragging");
+      const move=e=>{
+        const y=e.clientY;
+        for(const r of list.querySelectorAll(".ev")){
+          if(r===row) continue;
+          const b=r.getBoundingClientRect();
+          if(y>b.top&&y<b.bottom){
+            list.insertBefore(row,(y<b.top+b.height/2)?r:r.nextSibling);
+            break;
+          }
+        }
+      };
+      const up=()=>{
+        h.removeEventListener("pointermove",move);
+        h.removeEventListener("pointerup",up);
+        h.removeEventListener("pointercancel",up);
+        row.classList.remove("dragging");
+        commitOrder(list);
+      };
+      h.addEventListener("pointermove",move);
+      h.addEventListener("pointerup",up);
+      h.addEventListener("pointercancel",up);
+    });
+  });
+}
+function commitOrder(list){
+  const evs=ensurePlan(curDay);
+  const ids=[...list.querySelectorAll(".ev")].map(r=>r.dataset.ev);
+  const byId=new Map(evs.map(e=>[e.id,e]));
+  const next=[];
+  for(const id of ids){ const e=byId.get(id); if(e&&!next.includes(e)) next.push(e); }
+  for(const e of evs) if(!next.includes(e)) next.push(e);
+  const changed=next.some((e,i)=>e!==evs[i]);
+  plan[curDay]=next;
+  if(changed) shareWrite();
+  renderPlan();
+}
+function openImport(iso,title){
+  openSheet(title,"",
+    iso?`Paste JSON exported from this app. It replaces every item on ${iso}.`
+       :"Paste JSON exported from this app. Every date it contains is replaced; dates outside the trip are ignored.",
+    {editable:true,action:{label:"Import",fn:()=>{
+      const r=planImport($("sheetText").value,iso);
+      if(typeof r==="string"){ $("sheetHint").textContent="⚠ "+r; return; }
+      $("sheet").classList.remove("on");
+      editingEv=null; pendingDel=null;
+      if(curTab==="plan") renderPlan(); else renderInfo();
+    }}});
 }
 function bindEvents(root){
   root.querySelectorAll("[data-tick]").forEach(b=>b.onclick=()=>toggleCheck(b.dataset.tick));
@@ -825,7 +1086,7 @@ function renderIdeas(){
 /* ---------------- ask ---------------- */
 function tripBrief(){
   let s="ITINERARY (Sep 2026, all times JST):\n";
-  for(const d of DAYS){
+  for(const d of allDays()){
     s+=`Sep ${d.n} ${d.dow} — ${d.title}: `;
     s+=d.events.map(e=>`${e.time?e.time.replace("\n","-")+" ":""}${e.title}${e.flag?" ["+e.flag+"]":""}`).join("; ")+"\n";
   }
@@ -1034,6 +1295,13 @@ function renderInfo(){
   </div>
   <h3 class="sec">Useful links</h3>
   <div class="card">${LINKS.map(l=>`<div class="d" style="margin:4px 0"><a target="_blank" rel="noopener" href="${l.u}">${esc(l.t)}</a></div>`).join("")}</div>
+  <h3 class="sec">Schedule data</h3>
+  <div class="filters" style="margin-top:0">
+    <button class="fchip" id="planExportAll">⤓ Export all days (JSON)</button>
+    <button class="fchip" id="planImportAll">⤒ Import days (JSON)</button>
+    ${Object.keys(plan).length?`<button class="fchip warn" id="planResetAll">${pendingReset==="ALL"?"Reset everything — tap again":"↺ Reset all edits ("+Object.keys(plan).length+")"}</button>`:""}
+  </div>
+  <div class="backup-note">Edit a day from Plan › ✎ Edit day — add, change, delete and drag items into order. Edited days replace the built-in plan and sync between both phones; Reset puts a day back. Export gives you a JSON backup you can paste into Import later, for one day or all of them.</div>
   <h3 class="sec">Offline backup</h3>
   <div class="filters" style="margin-top:0">
     <button class="fchip" id="copyTrip">⤓ Copy whole trip as text</button>
@@ -1054,15 +1322,24 @@ function renderInfo(){
       box.addEventListener("blur",()=>{ if(editingBk) bkSave(); });
     }
   });
+  $("planExportAll").onclick=()=>openSheet("Whole schedule — JSON",planExport(null),
+    "Every day's items. Keep it as a backup, or paste it back through Import to restore the trip.");
+  $("planImportAll").onclick=()=>openImport(null,"Import days");
+  const rsa=$("planResetAll");
+  if(rsa) rsa.onclick=()=>{
+    if(pendingReset!=="ALL"){ pendingReset="ALL"; renderInfo(); return; }
+    plan={}; pendingReset=null; shareWrite(); renderInfo();
+  };
   $("copyTrip").onclick=()=>openSheet("Whole trip",tripText());
   $("copyToday").onclick=()=>{
-    const d=DAYS.find(x=>x.iso===jstISO())||DAYS.find(x=>x.iso===curDay)||DAYS[0];
+    const d=dayFor(jstISO())||dayFor(curDay)||effDay(DAYS[0]);
     openSheet(`Sep ${d.n} — ${d.title}`,dayText(d));
   };
   $("printBtn").onclick=()=>{
+    editMode=false; editingEv=null;
     setTab("plan");
     const w=$("pane-plan");
-    w.innerHTML=DAYS.map(d=>`
+    w.innerHTML=allDays().map(d=>`
       <div class="dayhead"><h2>Sep ${d.n} (${d.dow}) — ${esc(d.title)}</h2><div class="route">${esc(d.route)}</div></div>
       ${condStrip(d)}
       ${dayMaps(d)}
@@ -1110,6 +1387,7 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
   if(today>DAYS[DAYS.length-1].iso) curDay=DAYS[DAYS.length-1].iso;
   checks=lsGet("checks",{});
   bookings=lsGet("bookings",{});
+  plan=lsGet("plan",{});
   notes=lsGet("notes",[]);
   if(LITE){const b=document.querySelector('nav [data-tab="ask"]');if(b)b.style.display="none";}
   buildStrip(); renderPlan();
@@ -1121,7 +1399,7 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
       db=d;
       sharedRef=db.doc("trip/shared");
       sharedRef.onSnapshot(snap=>{
-        if(snap.exists){ const dd=snap.data(); checks=dd.checks||{}; if(dd.bookings) bookings=dd.bookings; }
+        if(snap.exists){ const dd=snap.data(); checks=dd.checks||{}; if(dd.bookings) bookings=dd.bookings; if(dd.plan) plan=dd.plan; }
         $("sync").classList.add("on"); $("syncTxt").textContent="synced";
         refreshChecksUI();
       },()=>{ $("sync").classList.remove("on"); $("syncTxt").textContent="local"; });
