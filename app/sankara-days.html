@@ -392,13 +392,13 @@ const DAYS = [
  {id:"d4a",time:"8:00\n9:00",s:480,e:540,title:"Breakfast at hotel",jp:"朝食",loc:"DoubleTree Shuri",mapq:"ダブルツリーbyヒルトン那覇首里城",trans:"Walk"},
  {id:"d4b",time:"9:00",s:540,e:660,title:"To Naha Airport",jp:"那覇空港へ",loc:"Naha Airport",mapq:"那覇空港",note:"Yui Rail from Shuri ≈ 30 min direct, or taxi.",trans:"Yui Rail / Taxi"},
  {id:"d4c",time:"~12:10",s:660,e:735,title:"Fly to Fukuoka",jp:"福岡へ",loc:"Fukuoka Airport 福岡空港",mapq:"福岡空港",note:"Arrive ≈ 12:10.",trans:"Flight",flag:"confirm"},
- {id:"d4d",time:"aft",s:780,e:900,title:"Check in — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",site:"https://hiltonhotels.jp/hotel/kyushu/hilton-fukuoka-sea-hawk",note:"Subway Kūkō line to Tōjinmachi + short taxi/bus, or taxi ≈ 20 min.",trans:"Subway / Taxi"},
+ {id:"d4d",time:"aft",s:780,e:900,title:"Check in — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",site:"https://hiltonhotels.jp/hotel/kyushu/hilton-fukuoka-sea-hawk",note:"No hotel airport shuttle (free shuttle is weekends-only). Direct Nishitetsu bus 139: domestic terminal → Hilton Sea Hawk-mae stop, ≈ 40 min, ¥440. Or subway to Tōjinmachi + taxi; taxi ≈ 20 min.",trans:"Bus 139 / Taxi"},
  {id:"d4e",time:"eve",title:"Evening free",jp:"自由時間",loc:"Fukuoka",mapq:"中洲屋台",note:"Yatai food stalls, Fukuoka Tower sunset (15 min walk). See Ideas › Fukuoka.",trans:"—",ideas:"fukuoka"}
 ]},
 {iso:"2026-09-05",n:"5",dow:"Sat",title:"Fukuoka → Yakushima",route:"福岡 → 屋久島 · sankara check-in",
  maps:[{area:"ov",leg:1},{area:"yaku",stops:["yaku_ap","sankara","toroki"],ctx:["miyanoura"]}],
  events:[
- {id:"d5a",time:"am",title:"To Fukuoka Airport",jp:"福岡空港へ",loc:"Fukuoka Airport",mapq:"福岡空港",note:"Taxi ≈ 20–30 min from the Hilton; domestic terminal.",trans:"Taxi"},
+ {id:"d5a",time:"am",title:"To Fukuoka Airport",jp:"福岡空港へ",loc:"Fukuoka Airport",mapq:"福岡空港",note:"Saturday: free hotel shuttle (1F group-bus door, from 10:00, every 20 min) → Tōjinmachi Stn, then subway ≈ 15 min to the airport. Or taxi ≈ 20–30 min.",trans:"Shuttle + Subway / Taxi"},
  {id:"d5b",time:"13:50\n15:00",s:830,e:900,title:"Fly to Yakushima",jp:"屋久島へ",loc:"Yakushima Airport 屋久島空港",mapq:"屋久島空港",note:"JAC propeller flight.",trans:"Flight",flag:"confirm"},
  {id:"d5c",time:"15:00\n16:00",s:900,e:960,title:"Shuttle + check-in, Manasa Villa",jp:"sankara hotel&spa 屋久島",loc:"sankara hotel&spa",mapq:"sankara hotel&spa 屋久島",site:"https://www.sankarahotel-spa.com/",note:"Free hotel shuttle from the airport; settle into the villa.",trans:"Hotel shuttle"},
  {id:"d5d",time:"16:00\n17:00",s:960,e:1020,title:"Torōki Falls",jp:"トローキの滝",loc:"Mugio 麦生",mapq:"トローキの滝",note:"Short walk to the deck — a waterfall dropping straight into the ocean.",trans:"Car (1 h) / bicycle"},
@@ -440,13 +440,13 @@ const DAYS = [
  {id:"d9c",time:"12:00\n13:00",s:720,e:780,title:"Shuttle to airport",jp:"空港へ",loc:"Yakushima Airport",mapq:"屋久島空港",note:"Hotel shuttle.",trans:"Hotel shuttle"},
  {id:"d9d",time:"~16:45",s:1005,e:1080,title:"Fly to Fukuoka",jp:"福岡へ",loc:"Fukuoka Airport",mapq:"福岡空港",note:"Departure around 16:45 — confirm exact time.",trans:"Flight",flag:"confirm"},
  {id:"d9e",time:"eve",s:1140,e:1320,title:"Dinner with 2 friends",jp:"友人と夕食（要予約）",loc:"Fukuoka city",mapq:"博多 もつ鍋",note:"NOT YET RESERVED — pick a place and book. Motsunabe or mizutaki are great group choices; see Ideas › Fukuoka.",trans:"Subway / Taxi",flag:"reserve",ideas:"fukuoka",ask:"Recommend 3 restaurants in central Fukuoka (Tenjin/Nakasu/Hakata) for a relaxed dinner for 4 people on Sep 9 evening — local specialties like motsunabe or mizutaki, mid-range, likely to accept a same-week reservation. Include Japanese names."},
- {id:"d9f",time:"night",title:"Stay — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",trans:"—"}
+ {id:"d9f",time:"night",title:"Stay — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",note:"Weekday — no free shuttle. Bus 139 from the airport (≈ 40 min, ¥440), or subway to Tōjinmachi + taxi.",trans:"Bus 139 / Taxi"}
 ]},
 {iso:"2026-09-10",n:"10",dow:"Thu",title:"Fukuoka → Naha",route:"福岡 → 那覇 · DoubleTree Asahibashi",
  maps:[{area:"ov",leg:3},{area:"naha",stops:["naha_ap","dt_naha"],ctx:["kokusai","umikaji"]}],
  events:[
  {id:"d10a",time:"am",title:"Morning free in Fukuoka",jp:"自由時間",loc:"Fukuoka",mapq:"大濠公園",site:"https://www.ohorikouen.jp/",note:"Ōhori Park, Kushida Shrine, or Canal City before the flight. See Ideas › Fukuoka.",trans:"—",ideas:"fukuoka"},
- {id:"d10b",time:"15:55\n17:35",s:955,e:1055,title:"Fly to Naha",jp:"那覇へ",loc:"Naha Airport",mapq:"那覇空港",note:"15:55 → 17:35.",trans:"Flight"},
+ {id:"d10b",time:"15:55\n17:35",s:955,e:1055,title:"Fly to Naha",jp:"那覇へ",loc:"Naha Airport",mapq:"那覇空港",note:"15:55 → 17:35. Weekday — no hotel shuttle to the airport: bus 139 from Hilton Sea Hawk-mae (≈ 40 min, leave buffer), or taxi.",trans:"Flight"},
  {id:"d10c",time:"eve",s:1080,e:1140,title:"Check in — DoubleTree Naha",jp:"ダブルツリーbyヒルトン那覇",loc:"Asahibashi 旭橋, Naha",mapq:"ダブルツリーbyヒルトン那覇",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha",note:"Yui Rail 3 stops to Asahibashi; hotel is right by the station.",trans:"Yui Rail"},
  {id:"d10d",time:"night",title:"Evening free",jp:"自由時間",loc:"Naha",mapq:"ジャッキーステーキハウス",note:"Jacky Steak House is nearby; or Kokusai-dōri. See Ideas › Naha.",trans:"—",ideas:"naha"}
 ]},
@@ -505,7 +505,7 @@ const IDEAS=[
 /* ---------------- info data ---------------- */
 const HOTELS=[
 {name:"DoubleTree by Hilton Naha Shuri Castle",jp:"ダブルツリーbyヒルトン那覇首里城",d:"Sep 3 · Hilton Honors",tel:"098-886-5454",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha-shuri-castle",mapq:"ダブルツリーbyヒルトン那覇首里城"},
-{name:"Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",d:"Sep 4 & Sep 9 · Hilton Honors",tel:"092-844-8111",site:"https://hiltonhotels.jp/hotel/kyushu/hilton-fukuoka-sea-hawk",mapq:"ヒルトン福岡シーホーク"},
+{name:"Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",d:"Sep 4 & Sep 9 · Hilton Honors · Free shuttle ⇄ Tōjinmachi Stn: weekends/holidays only, 10:00–19:00, every 20 min (no airport shuttle). Nishitetsu bus 139 runs airport ⇄ hotel, ≈ 40 min, ¥440.",tel:"092-844-8111",site:"https://hiltonhotels.jp/hotel/kyushu/hilton-fukuoka-sea-hawk",mapq:"ヒルトン福岡シーホーク"},
 {name:"sankara hotel&spa yakushima",jp:"sankara hotel&spa 屋久島",d:"Sep 5–9 · Manasa Villa · free airport shuttle",tel:"0800-800-6007",site:"https://www.sankarahotel-spa.com/",mapq:"sankara hotel&spa 屋久島"},
 {name:"DoubleTree by Hilton Naha",jp:"ダブルツリーbyヒルトン那覇（旭橋）",d:"Sep 10 · Hilton Honors",tel:"098-862-0123",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha",mapq:"ダブルツリーbyヒルトン那覇"}
 ];
