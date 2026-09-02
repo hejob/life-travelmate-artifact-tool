@@ -91,3 +91,5 @@ Want any tweaks tonight — different ideas, a place you already have in mind fo
 - ask: give some recommendations for different days (select the date)
 
 lite: for sharing. cannot use sharing db or claude?
+
+add official site link for the items if exists

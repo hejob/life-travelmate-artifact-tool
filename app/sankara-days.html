@@ -106,6 +106,7 @@ header{padding:14px 0 8px}
 .chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2.5px 9px;background:var(--surface2);color:var(--ink);text-decoration:none}
 .chip svg{width:11px;height:11px;flex:none}
 .chip.map{color:var(--tide);border-color:color-mix(in srgb,var(--tide) 35%,transparent)}
+.chip.site{color:var(--moss);border-color:color-mix(in srgb,var(--moss) 35%,transparent)}
 .chip.trans{color:var(--cedar)}
 .chip.flag{color:var(--amber);background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 40%,transparent);font-weight:600}
 .chip.askbtn{color:var(--moss);border-color:var(--moss);font-weight:600}
@@ -256,6 +257,7 @@ nav button.sel{color:var(--moss);font-weight:600}
 const LITE=false; /* build-lite.sh flips this: Lite build has no Claude capabilities and hides the Ask tab */
 /* ---------------- helpers ---------------- */
 const M = q => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+const GLOBE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18-2.5-2.7-2.5-15.3 0-18z"/></svg>';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function lsGet(k,f){try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){return f}}
@@ -381,8 +383,8 @@ const DAYS = [
  maps:[{area:"naha",stops:["dt_shuri"],ctx:["naha_ap","kokusai","shuri"]}],
  events:[
  {id:"d3a",time:"day",title:"Drop car at Toyota dealer",jp:"トヨタで車を整備入庫",loc:"Toyota dealer, Naha",mapq:"トヨタ 那覇市",note:"Car stays for maintenance — pick-up Sep 11 at 13:00.",trans:"Car"},
- {id:"d3b",time:"aft",title:"Check in — DoubleTree Shuri Castle",jp:"ダブルツリーbyヒルトン那覇首里城",loc:"Shuri, Naha",mapq:"ダブルツリーbyヒルトン那覇首里城",note:"Hilton Honors rate.",trans:"Taxi / Yui Rail"},
- {id:"d3c",time:"eve",title:"Evening free",jp:"自由時間",loc:"Naha",mapq:"首里城公園",note:"Shuri Castle park is next door; or head to Kokusai-dōri. See Ideas › Naha.",trans:"—",ideas:"naha"}
+ {id:"d3b",time:"aft",title:"Check in — DoubleTree Shuri Castle",jp:"ダブルツリーbyヒルトン那覇首里城",loc:"Shuri, Naha",mapq:"ダブルツリーbyヒルトン那覇首里城",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha-shuri-castle",note:"Hilton Honors rate.",trans:"Taxi / Yui Rail"},
+ {id:"d3c",time:"eve",title:"Evening free",jp:"自由時間",loc:"Naha",mapq:"首里城公園",site:"https://oki-park.jp/shurijo/",note:"Shuri Castle park is next door; or head to Kokusai-dōri. See Ideas › Naha.",trans:"—",ideas:"naha"}
 ]},
 {iso:"2026-09-04",n:"4",dow:"Fri",title:"Naha → Fukuoka",route:"那覇 → 福岡 · Hilton Sea Hawk",
  maps:[{area:"ov",leg:0},{area:"fuk",stops:["fuk_ap","hilton"],ctx:["tenjin","nakasu"]}],
@@ -390,7 +392,7 @@ const DAYS = [
  {id:"d4a",time:"8:00\n9:00",s:480,e:540,title:"Breakfast at hotel",jp:"朝食",loc:"DoubleTree Shuri",mapq:"ダブルツリーbyヒルトン那覇首里城",trans:"Walk"},
  {id:"d4b",time:"9:00",s:540,e:660,title:"To Naha Airport",jp:"那覇空港へ",loc:"Naha Airport",mapq:"那覇空港",note:"Yui Rail from Shuri ≈ 30 min direct, or taxi.",trans:"Yui Rail / Taxi"},
  {id:"d4c",time:"~12:10",s:660,e:735,title:"Fly to Fukuoka",jp:"福岡へ",loc:"Fukuoka Airport 福岡空港",mapq:"福岡空港",note:"Arrive ≈ 12:10.",trans:"Flight",flag:"confirm"},
- {id:"d4d",time:"aft",s:780,e:900,title:"Check in — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",note:"Subway Kūkō line to Tōjinmachi + short taxi/bus, or taxi ≈ 20 min.",trans:"Subway / Taxi"},
+ {id:"d4d",time:"aft",s:780,e:900,title:"Check in — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",site:"https://hiltonhotels.jp/hotel/kyushu/hilton-fukuoka-sea-hawk",note:"Subway Kūkō line to Tōjinmachi + short taxi/bus, or taxi ≈ 20 min.",trans:"Subway / Taxi"},
  {id:"d4e",time:"eve",title:"Evening free",jp:"自由時間",loc:"Fukuoka",mapq:"中洲屋台",note:"Yatai food stalls, Fukuoka Tower sunset (15 min walk). See Ideas › Fukuoka.",trans:"—",ideas:"fukuoka"}
 ]},
 {iso:"2026-09-05",n:"5",dow:"Sat",title:"Fukuoka → Yakushima",route:"福岡 → 屋久島 · sankara check-in",
@@ -398,7 +400,7 @@ const DAYS = [
  events:[
  {id:"d5a",time:"am",title:"To Fukuoka Airport",jp:"福岡空港へ",loc:"Fukuoka Airport",mapq:"福岡空港",note:"Taxi ≈ 20–30 min from the Hilton; domestic terminal.",trans:"Taxi"},
  {id:"d5b",time:"13:50\n15:00",s:830,e:900,title:"Fly to Yakushima",jp:"屋久島へ",loc:"Yakushima Airport 屋久島空港",mapq:"屋久島空港",note:"JAC propeller flight.",trans:"Flight",flag:"confirm"},
- {id:"d5c",time:"15:00\n16:00",s:900,e:960,title:"Shuttle + check-in, Manasa Villa",jp:"sankara hotel&spa 屋久島",loc:"sankara hotel&spa",mapq:"sankara hotel&spa 屋久島",note:"Free hotel shuttle from the airport; settle into the villa.",trans:"Hotel shuttle"},
+ {id:"d5c",time:"15:00\n16:00",s:900,e:960,title:"Shuttle + check-in, Manasa Villa",jp:"sankara hotel&spa 屋久島",loc:"sankara hotel&spa",mapq:"sankara hotel&spa 屋久島",site:"https://www.sankarahotel-spa.com/",note:"Free hotel shuttle from the airport; settle into the villa.",trans:"Hotel shuttle"},
  {id:"d5d",time:"16:00\n17:00",s:960,e:1020,title:"Torōki Falls",jp:"トローキの滝",loc:"Mugio 麦生",mapq:"トローキの滝",note:"Short walk to the deck — a waterfall dropping straight into the ocean.",trans:"Car (1 h) / bicycle"},
  {id:"d5e",time:"18:00\n20:00",s:1080,e:1200,title:"Dinner — ayana",jp:"アヤナ",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"First included French-regional prix fixe.",trans:"Walk"}
 ]},
@@ -406,7 +408,7 @@ const DAYS = [
  maps:[{area:"yaku",stops:["sankara","shiratani","warung","sankara"],ctx:["miyanoura","yaku_ap"]}],
  events:[
  {id:"d6a",time:"7:30\n8:30",s:450,e:510,title:"Breakfast",jp:"朝食",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Complimentary Diamond breakfast.",trans:"Walk"},
- {id:"d6b",time:"9:00\n13:00",s:540,e:780,title:"Hike — Shiratani Unsuikyō",jp:"白谷雲水峡・弥生杉コース",loc:"Shiratani Unsuikyō",mapq:"白谷雲水峡",note:"Yayoi-sugi loop, ≈ 1 h easy walk in the moss forest. Rental car 9:00–15:00.",trans:"Car rental"},
+ {id:"d6b",time:"9:00\n13:00",s:540,e:780,title:"Hike — Shiratani Unsuikyō",jp:"白谷雲水峡・弥生杉コース",loc:"Shiratani Unsuikyō",mapq:"白谷雲水峡",site:"https://y-rekumori.com/",note:"Yayoi-sugi loop, ≈ 1 h easy walk in the moss forest. Rental car 9:00–15:00.",trans:"Car rental"},
  {id:"d6c",time:"13:30\n14:30",s:810,e:870,title:"Lunch — Warung Karang",jp:"ワルン・カラン",loc:"Anbo 安房",mapq:"ワルンカラン 屋久島",note:"Southeast-Asian cuisine. Closes 15:00.",trans:"Car rental"},
  {id:"d6d",time:"15:00\n17:30",s:900,e:1050,title:"Relaxation — sauna 15:00",jp:"サウナ予約 15:00",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Return car; pool or villa. Sauna reservation at 15:00.",trans:"—"},
  {id:"d6e",time:"18:30\n20:30",s:1110,e:1230,title:"Dinner — ayana",jp:"アヤナ",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Included multi-course dinner.",trans:"Walk"}
@@ -415,7 +417,7 @@ const DAYS = [
  maps:[{area:"yaku",stops:["sankara","yland","katagiri","sankara"],ctx:["yaku_ap"]}],
  events:[
  {id:"d7a",time:"8:30\n9:30",s:510,e:570,title:"Breakfast",jp:"朝食",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Fuel up for the cedar forest.",trans:"Walk"},
- {id:"d7b",time:"10:30\n12:30",s:630,e:750,title:"Hike — Yakusugi Land",jp:"ヤクスギランド",loc:"Yakusugi Land",mapq:"ヤクスギランド",note:"50-min paved course among ancient giant cedars. Rental car 10:00–15:00.",trans:"Car rental"},
+ {id:"d7b",time:"10:30\n12:30",s:630,e:750,title:"Hike — Yakusugi Land",jp:"ヤクスギランド",loc:"Yakusugi Land",mapq:"ヤクスギランド",site:"https://y-rekumori.com/",note:"50-min paved course among ancient giant cedars. Rental car 10:00–15:00.",trans:"Car rental"},
  {id:"d7c",time:"13:30\n14:30",s:810,e:870,title:"Lunch — Katagiri-san",jp:"かたぎりさん",loc:"Anbo 安房",mapq:"かたぎりさん 屋久島",note:"Hearty local lunch.",trans:"Car rental"},
  {id:"d7d",time:"15:30\n18:00",s:930,e:1080,title:"Relaxation",jp:"休憩",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Rest and freshen up before dinner.",trans:"—"},
  {id:"d7e",time:"18:30\n20:30",s:1110,e:1230,title:"Dinner — okas / ayana",jp:"オーカス / アヤナ",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Flexible night for the okas fine-dining upgrade, pending availability; otherwise ayana.",trans:"Walk",flag:"decide"}
@@ -443,15 +445,15 @@ const DAYS = [
 {iso:"2026-09-10",n:"10",dow:"Thu",title:"Fukuoka → Naha",route:"福岡 → 那覇 · DoubleTree Asahibashi",
  maps:[{area:"ov",leg:3},{area:"naha",stops:["naha_ap","dt_naha"],ctx:["kokusai","umikaji"]}],
  events:[
- {id:"d10a",time:"am",title:"Morning free in Fukuoka",jp:"自由時間",loc:"Fukuoka",mapq:"大濠公園",note:"Ōhori Park, Kushida Shrine, or Canal City before the flight. See Ideas › Fukuoka.",trans:"—",ideas:"fukuoka"},
+ {id:"d10a",time:"am",title:"Morning free in Fukuoka",jp:"自由時間",loc:"Fukuoka",mapq:"大濠公園",site:"https://www.ohorikouen.jp/",note:"Ōhori Park, Kushida Shrine, or Canal City before the flight. See Ideas › Fukuoka.",trans:"—",ideas:"fukuoka"},
  {id:"d10b",time:"15:55\n17:35",s:955,e:1055,title:"Fly to Naha",jp:"那覇へ",loc:"Naha Airport",mapq:"那覇空港",note:"15:55 → 17:35.",trans:"Flight"},
- {id:"d10c",time:"eve",s:1080,e:1140,title:"Check in — DoubleTree Naha",jp:"ダブルツリーbyヒルトン那覇",loc:"Asahibashi 旭橋, Naha",mapq:"ダブルツリーbyヒルトン那覇",note:"Yui Rail 3 stops to Asahibashi; hotel is right by the station.",trans:"Yui Rail"},
+ {id:"d10c",time:"eve",s:1080,e:1140,title:"Check in — DoubleTree Naha",jp:"ダブルツリーbyヒルトン那覇",loc:"Asahibashi 旭橋, Naha",mapq:"ダブルツリーbyヒルトン那覇",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha",note:"Yui Rail 3 stops to Asahibashi; hotel is right by the station.",trans:"Yui Rail"},
  {id:"d10d",time:"night",title:"Evening free",jp:"自由時間",loc:"Naha",mapq:"ジャッキーステーキハウス",note:"Jacky Steak House is nearby; or Kokusai-dōri. See Ideas › Naha.",trans:"—",ideas:"naha"}
 ]},
 {iso:"2026-09-11",n:"11",dow:"Fri",title:"Home stretch",route:"那覇 · car pick-up 13:00",
  maps:[{area:"naha",stops:["dt_naha"],ctx:["naha_ap","kokusai","umikaji"]}],
  events:[
- {id:"d11a",time:"am",title:"Morning free",jp:"自由時間",loc:"Naha",mapq:"波上宮",note:"Naminoue Shrine, Makishi market, or a slow breakfast.",trans:"—",ideas:"naha"},
+ {id:"d11a",time:"am",title:"Morning free",jp:"自由時間",loc:"Naha",mapq:"波上宮",site:"https://naminouegu.jp/",note:"Naminoue Shrine, Makishi market, or a slow breakfast.",trans:"—",ideas:"naha"},
  {id:"d11b",time:"13:00",s:780,e:840,title:"Pick up car — Toyota dealer",jp:"トヨタで車を受け取り",loc:"Toyota dealer, Naha",mapq:"トヨタ 那覇市",note:"Maintenance done. Trip complete — safe drive home!",trans:"Taxi → Car"}
 ]}
 ];
@@ -466,7 +468,7 @@ const IDEAS=[
 {a:"yakushima",name:"Ōko Falls",jp:"大川の滝",ll:[30.288,130.435],tags:["sight"],mapq:"大川の滝",note:"88 m, one of Japan's top-100 waterfalls; you can walk near the basin. ~40 min drive west of the hotel."},
 {a:"yakushima",name:"Seibu Rindō forest road",jp:"西部林道",ll:[30.345,130.425],tags:["sight"],mapq:"西部林道 屋久島",note:"UNESCO coastal road with wild monkeys and deer on the tarmac. Narrow — drive slowly; combines well with Ōko Falls."},
 {a:"yakushima",name:"Kigen-sugi Cedar",jp:"紀元杉",ll:[30.303,130.545],tags:["sight","short"],mapq:"紀元杉",note:"~3,000-year-old cedar you can drive right up to — 15 min past Yakusugi Land on the mountain road.",ld:10},
-{a:"yakushima",name:"Yakusugi Museum",jp:"屋久杉自然館",ll:[30.318,130.645],tags:["rain","short"],mapq:"屋久杉自然館",note:"In Anbo — the story of the ancient cedars. The best rainy/typhoon-day backup.",la:"end"},
+{a:"yakushima",name:"Yakusugi Museum",jp:"屋久杉自然館",ll:[30.318,130.645],tags:["rain","short"],mapq:"屋久杉自然館",site:"https://www.yakusugi-museum.com/",note:"In Anbo — the story of the ancient cedars. The best rainy/typhoon-day backup.",la:"end"},
 {a:"yakushima",name:"Yakushima Fruit Garden",jp:"屋久島フルーツガーデン",ll:[30.247,130.525],tags:["short","food"],mapq:"屋久島フルーツガーデン",note:"Tropical garden with a fruit tasting, southwest coast near Nakama.",ld:10},
 {a:"yakushima",name:"Shitogo Gajumaru Park",jp:"志戸子ガジュマル公園",ll:[30.445,130.535],tags:["short","sight"],mapq:"志戸子ガジュマル公園",note:"Banyan grove on the north coast — quick atmospheric stop near Miyanoura."},
 {a:"yakushima",name:"Nagata Inakahama Beach",jp:"永田いなか浜",ll:[30.393,130.428],tags:["sight","sunset"],mapq:"永田いなか浜",note:"Sea-turtle nesting beach and the island's best sunset. Far side of the island (~1 h) — only with time to spare."},
@@ -474,19 +476,19 @@ const IDEAS=[
 {a:"yakushima",name:"Yaku Shrine",jp:"益救神社",ll:[30.423,130.577],tags:["short","sight"],mapq:"益救神社",note:"Old shrine in Miyanoura — 'the rescue shrine' for sea travelers.",la:"end"},
 {a:"yakushima",name:"Try tobiuo (flying fish)",jp:"飛魚料理",ll:[30.322,130.658],tags:["food"],mapq:"安房 飛魚 食事",note:"The island specialty — whole fried flying fish, tobiuo tempura. Most Anbo restaurants serve it.",la:"end"},
 {a:"fukuoka",name:"Nakasu yatai stalls",jp:"中洲屋台街",ll:[33.593,130.406],tags:["food"],mapq:"中洲屋台",note:"Open-air food stalls along the river from ~18:00 — ramen, yakitori, oden. Cash, small portions, hop between stalls.",ld:-8},
-{a:"fukuoka",name:"Motsunabe Ōyama",jp:"もつ鍋おおやま",ll:[33.590,130.420],tags:["food"],mapq:"もつ鍋おおやま 博多",note:"Famous offal hotpot — Hakata's group-dinner classic. Good candidate for the Sep 9 friends dinner; reserve ahead."},
-{a:"fukuoka",name:"Mizutaki Hanamidori",jp:"博多華味鳥",ll:[33.590,130.398],tags:["food"],mapq:"博多華味鳥",note:"Chicken hotpot, the gentler Hakata specialty. Several branches; also a solid friends-dinner pick.",la:"end",ld:10},
-{a:"fukuoka",name:"Ramen Shin-Shin (Tenjin)",jp:"博多らーめんShinShin天神本店",ll:[33.592,130.399],tags:["food","short"],mapq:"ShinShin 天神本店",note:"Classic thin-noodle tonkotsu. Queues move fast; great quick lunch.",ld:-8},
-{a:"fukuoka",name:"teamLab Forest",jp:"チームラボフォレスト",ll:[33.595,130.362],tags:["rain","sight"],mapq:"チームラボフォレスト 福岡",note:"Digital-art museum in BOSS E・ZO next to PayPay Dome — 5 min from the Hilton. Perfect rain option.",ld:-8},
-{a:"fukuoka",name:"Fukuoka Tower & Momochi",jp:"福岡タワー・シーサイドももち",ll:[33.593,130.351],tags:["sight","sunset"],mapq:"福岡タワー",note:"15-min walk from the Hilton; sunset over Hakata Bay from the 123 m deck.",ld:10},
-{a:"fukuoka",name:"Ōhori Park",jp:"大濠公園",ll:[33.586,130.376],tags:["sight","short"],mapq:"大濠公園",note:"Lakeside loop and a small Japanese garden — easy pre-flight morning stroll."},
-{a:"fukuoka",name:"Fukuoka Art Museum",jp:"福岡市美術館",ll:[33.584,130.377],tags:["rain","short"],mapq:"福岡市美術館",note:"In Ōhori Park — Dalí, Miró, and a famous giant Kusama pumpkin. Pairs with the park loop.",ld:12},
+{a:"fukuoka",name:"Motsunabe Ōyama",jp:"もつ鍋おおやま",ll:[33.590,130.420],tags:["food"],mapq:"もつ鍋おおやま 博多",site:"https://www.motu-ooyama.com/",note:"Famous offal hotpot — Hakata's group-dinner classic. Good candidate for the Sep 9 friends dinner; reserve ahead."},
+{a:"fukuoka",name:"Mizutaki Hanamidori",jp:"博多華味鳥",ll:[33.590,130.398],tags:["food"],mapq:"博多華味鳥",site:"https://www.hanamidori.net/",note:"Chicken hotpot, the gentler Hakata specialty. Several branches; also a solid friends-dinner pick.",la:"end",ld:10},
+{a:"fukuoka",name:"Ramen Shin-Shin (Tenjin)",jp:"博多らーめんShinShin天神本店",ll:[33.592,130.399],tags:["food","short"],mapq:"ShinShin 天神本店",site:"https://www.hakata-shinshin.com/",note:"Classic thin-noodle tonkotsu. Queues move fast; great quick lunch.",ld:-8},
+{a:"fukuoka",name:"teamLab Forest",jp:"チームラボフォレスト",ll:[33.595,130.362],tags:["rain","sight"],mapq:"チームラボフォレスト 福岡",site:"https://www.teamlab.art/e/forest/",note:"Digital-art museum in BOSS E・ZO next to PayPay Dome — 5 min from the Hilton. Perfect rain option.",ld:-8},
+{a:"fukuoka",name:"Fukuoka Tower & Momochi",jp:"福岡タワー・シーサイドももち",ll:[33.593,130.351],tags:["sight","sunset"],mapq:"福岡タワー",site:"https://www.fukuokatower.co.jp/",note:"15-min walk from the Hilton; sunset over Hakata Bay from the 123 m deck.",ld:10},
+{a:"fukuoka",name:"Ōhori Park",jp:"大濠公園",ll:[33.586,130.376],tags:["sight","short"],mapq:"大濠公園",site:"https://www.ohorikouen.jp/",note:"Lakeside loop and a small Japanese garden — easy pre-flight morning stroll."},
+{a:"fukuoka",name:"Fukuoka Art Museum",jp:"福岡市美術館",ll:[33.584,130.377],tags:["rain","short"],mapq:"福岡市美術館",site:"https://www.fukuoka-art-museum.jp/",note:"In Ōhori Park — Dalí, Miró, and a famous giant Kusama pumpkin. Pairs with the park loop.",ld:12},
 {a:"fukuoka",name:"Kushida Shrine & Kawabata arcade",jp:"櫛田神社・川端商店街",ll:[33.593,130.410],tags:["sight","shop","rain"],mapq:"櫛田神社",note:"Hakata's shrine plus the covered shopping arcade next door.",ld:-6,la:"end"},
-{a:"fukuoka",name:"Canal City Hakata",jp:"キャナルシティ博多",ll:[33.589,130.411],tags:["shop","rain"],mapq:"キャナルシティ博多",note:"Big canal-side mall with the Ramen Stadium food floor.",ld:12},
+{a:"fukuoka",name:"Canal City Hakata",jp:"キャナルシティ博多",ll:[33.589,130.411],tags:["shop","rain"],mapq:"キャナルシティ博多",site:"https://canalcity.co.jp/",note:"Big canal-side mall with the Ramen Stadium food floor.",ld:12},
 {a:"fukuoka",name:"Sumiyoshi Shrine",jp:"住吉神社",ll:[33.585,130.414],tags:["sight","short"],mapq:"住吉神社 福岡",note:"One of Japan's oldest Sumiyoshi shrines, quiet wooded grounds near Hakata Station.",ld:12},
-{a:"fukuoka",name:"Dazaifu Tenmangū",jp:"太宰府天満宮",ll:[33.521,130.535],tags:["sight"],mapq:"太宰府天満宮",note:"Grand shrine of learning, plum-groves and the omotesandō snack street. ~40 min by train from Tenjin — a half-day trip."},
+{a:"fukuoka",name:"Dazaifu Tenmangū",jp:"太宰府天満宮",ll:[33.521,130.535],tags:["sight"],mapq:"太宰府天満宮",site:"https://www.dazaifutenmangu.or.jp/",note:"Grand shrine of learning, plum-groves and the omotesandō snack street. ~40 min by train from Tenjin — a half-day trip."},
 {a:"fukuoka",name:"Nishijin shopping street",jp:"西新商店街",ll:[33.582,130.359],tags:["food","shop","short"],mapq:"西新商店街",note:"Local everyday shōtengai one stop from the Hilton — street snacks, cheap eats.",ld:10},
-{a:"naha",name:"Shuri Castle Park",jp:"首里城公園",ll:[26.219,127.719],tags:["sight"],mapq:"首里城公園",note:"Next to the Sep 3 hotel. Main hall reconstruction is ongoing after the 2019 fire — walls, gates and city views still worth it.",ld:-8},
+{a:"naha",name:"Shuri Castle Park",jp:"首里城公園",ll:[26.219,127.719],tags:["sight"],mapq:"首里城公園",site:"https://oki-park.jp/shurijo/",note:"Next to the Sep 3 hotel. Main hall reconstruction is ongoing after the 2019 fire — walls, gates and city views still worth it.",ld:-8},
 {a:"naha",name:"Tamaudun Mausoleum",jp:"玉陵",ll:[26.217,127.714],tags:["sight","short"],mapq:"玉陵",note:"UNESCO royal tombs of the Ryūkyū kings, 5 min walk from Shuri Castle.",la:"end"},
 {a:"naha",name:"Shikinaen Garden",jp:"識名園",ll:[26.204,127.715],tags:["sight","short"],mapq:"識名園",note:"UNESCO royal garden blending Ryūkyū and Chinese styles — calm, rarely crowded.",ld:12},
 {a:"naha",name:"Kokusai-dōri",jp:"国際通り",ll:[26.214,127.686],tags:["shop","food"],mapq:"国際通り",note:"The mile-long main strip — souvenirs, awamori, snacks.",ld:-8},
@@ -494,18 +496,18 @@ const IDEAS=[
 {a:"naha",name:"Tsuboya Yachimun Street",jp:"壺屋やちむん通り",ll:[26.211,127.690],tags:["shop","short"],mapq:"壺屋やちむん通り",note:"Quiet stone-paved pottery lane off Kokusai-dōri.",ld:16},
 {a:"naha",name:"Jacky Steak House",jp:"ジャッキーステーキハウス",ll:[26.211,127.671],tags:["food"],mapq:"ジャッキーステーキハウス",note:"Okinawan-style steak institution near Asahibashi — walkable from the Sep 10 hotel.",ld:10,la:"end"},
 {a:"naha",name:"Fukushūen Garden",jp:"福州園",ll:[26.214,127.672],tags:["sight","short","rain"],mapq:"福州園",note:"Chinese-style walled garden 10 min from Asahibashi — a quick green escape.",ld:-8,la:"end"},
-{a:"naha",name:"Naminoue Shrine & Beach",jp:"波上宮",ll:[26.221,127.669],tags:["sight","short"],mapq:"波上宮",note:"Shrine on a cliff above the city beach — 15 min walk from Asahibashi.",ld:-8},
+{a:"naha",name:"Naminoue Shrine & Beach",jp:"波上宮",ll:[26.221,127.669],tags:["sight","short"],mapq:"波上宮",site:"https://naminouegu.jp/",note:"Shrine on a cliff above the city beach — 15 min walk from Asahibashi.",ld:-8},
 {a:"naha",name:"Tomari Iyumachi fish market",jp:"泊いゆまち",ll:[26.228,127.677],tags:["food","short"],mapq:"泊いゆまち",note:"Fishermen's market — cheap maguro bowls and sashimi packs, morning to ~15:00."},
-{a:"naha",name:"Umikaji Terrace",jp:"瀬長島ウミカジテラス",ll:[26.177,127.645],tags:["sunset","food","sight"],mapq:"瀬長島ウミカジテラス",note:"White terraced cafes on Senaga Island by the airport — sunsets and landing planes. Great Sep 10 evening if energy allows.",ld:10},
-{a:"naha",name:"Ashibinaa Outlet",jp:"沖縄アウトレットモールあしびなー",ll:[26.158,127.655],tags:["shop"],mapq:"沖縄アウトレットモールあしびなー",note:"Outlet mall near the airport — could pair with the Sep 11 car pick-up."}
+{a:"naha",name:"Umikaji Terrace",jp:"瀬長島ウミカジテラス",ll:[26.177,127.645],tags:["sunset","food","sight"],mapq:"瀬長島ウミカジテラス",site:"https://www.umikajiterrace.com/",note:"White terraced cafes on Senaga Island by the airport — sunsets and landing planes. Great Sep 10 evening if energy allows.",ld:10},
+{a:"naha",name:"Ashibinaa Outlet",jp:"沖縄アウトレットモールあしびなー",ll:[26.158,127.655],tags:["shop"],mapq:"沖縄アウトレットモールあしびなー",site:"https://www.ashibinaa.com/",note:"Outlet mall near the airport — could pair with the Sep 11 car pick-up."}
 ];
 
 /* ---------------- info data ---------------- */
 const HOTELS=[
-{name:"DoubleTree by Hilton Naha Shuri Castle",jp:"ダブルツリーbyヒルトン那覇首里城",d:"Sep 3 · Hilton Honors",tel:"098-886-5454",mapq:"ダブルツリーbyヒルトン那覇首里城"},
-{name:"Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",d:"Sep 4 & Sep 9 · Hilton Honors",tel:"092-844-8111",mapq:"ヒルトン福岡シーホーク"},
-{name:"sankara hotel&spa yakushima",jp:"sankara hotel&spa 屋久島",d:"Sep 5–9 · Manasa Villa · free airport shuttle",tel:"0800-800-6007",mapq:"sankara hotel&spa 屋久島"},
-{name:"DoubleTree by Hilton Naha",jp:"ダブルツリーbyヒルトン那覇（旭橋）",d:"Sep 10 · Hilton Honors",tel:"098-862-0123",mapq:"ダブルツリーbyヒルトン那覇"}
+{name:"DoubleTree by Hilton Naha Shuri Castle",jp:"ダブルツリーbyヒルトン那覇首里城",d:"Sep 3 · Hilton Honors",tel:"098-886-5454",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha-shuri-castle",mapq:"ダブルツリーbyヒルトン那覇首里城"},
+{name:"Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",d:"Sep 4 & Sep 9 · Hilton Honors",tel:"092-844-8111",site:"https://hiltonhotels.jp/hotel/kyushu/hilton-fukuoka-sea-hawk",mapq:"ヒルトン福岡シーホーク"},
+{name:"sankara hotel&spa yakushima",jp:"sankara hotel&spa 屋久島",d:"Sep 5–9 · Manasa Villa · free airport shuttle",tel:"0800-800-6007",site:"https://www.sankarahotel-spa.com/",mapq:"sankara hotel&spa 屋久島"},
+{name:"DoubleTree by Hilton Naha",jp:"ダブルツリーbyヒルトン那覇（旭橋）",d:"Sep 10 · Hilton Honors",tel:"098-862-0123",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha",mapq:"ダブルツリーbyヒルトン那覇"}
 ];
 const CHECKLIST=[
 {id:"c1",t:"Confirm all flight times + online check-in (JAL/JTA/JAC)"},
@@ -524,6 +526,8 @@ const LINKS=[
 {t:"Yakushima weather (tenki.jp)",u:"https://tenki.jp/search/?keyword=%E5%B1%8B%E4%B9%85%E5%B3%B6"},
 {t:"Typhoon info (JMA)",u:"https://www.jma.go.jp/bosai/map.html#contents=typhoon"},
 {t:"JAL flight status",u:"https://www.jal.co.jp/jp/ja/dom/"},
+{t:"Yakushima Tourism Association",u:"https://yakukan.jp/"},
+{t:"Yui Rail (Naha monorail)",u:"https://www.yui-rail.co.jp/"},
 {t:"Yakushima tide table (for Hirauchi onsen)",u:"https://tenki.jp/search/?keyword=%E5%B1%8B%E4%B9%85%E5%B3%B6%20%E6%BD%AE"}
 ];
 
@@ -587,6 +591,7 @@ function evHTML(d,ev){
       ${ev.note?`<div class="note">${esc(ev.note)}</div>`:""}
       <div class="meta">
         <a class="chip map" target="_blank" rel="noopener" href="${M(ev.mapq||ev.loc)}">${pin}${esc(ev.loc)}</a>
+        ${ev.site?`<a class="chip site" target="_blank" rel="noopener" href="${ev.site}">${GLOBE}Official</a>`:""}
         ${ev.trans&&ev.trans!=="—"?`<span class="chip trans">${esc(ev.trans)}</span>`:""}
         ${ev.flag?`<span class="chip flag">⚑ ${flags[ev.flag]||ev.flag}</span>`:""}
         ${ev.ideas?`<button class="chip" data-ideas="${ev.ideas}">Ideas ›</button>`:""}
@@ -621,6 +626,7 @@ function renderIdeas(){
         <div class="note">${esc(i.note)}</div>
         <div class="meta">
           <a class="chip map" target="_blank" rel="noopener" href="${M(i.mapq)}">${pin}Map</a>
+          ${i.site?`<a class="chip site" target="_blank" rel="noopener" href="${i.site}">${GLOBE}Official</a>`:""}
           ${i.tags.map(t=>{const f=IDEA_TAGS.find(x=>x[0]===t);return `<span class="chip">${f?f[1]:t}</span>`}).join("")}
         </div>
       </div>
@@ -791,7 +797,7 @@ function renderInfo(){
   <div class="map-cap">Naha → Fukuoka → Yakushima → Fukuoka → Naha. Schematic map.</div>
   <h3 class="sec">Hotels</h3>
   ${HOTELS.map(h=>`<div class="card"><div class="t">${esc(h.name)}</div><div class="jp2">${esc(h.jp)}</div><div class="d">${esc(h.d)}</div>
-    <div class="meta"><a class="chip map" target="_blank" rel="noopener" href="${M(h.mapq)}">${pin}Map</a><a class="chip" href="tel:${h.tel}">☎ ${h.tel}</a></div></div>`).join("")}
+    <div class="meta"><a class="chip map" target="_blank" rel="noopener" href="${M(h.mapq)}">${pin}Map</a>${h.site?`<a class="chip site" target="_blank" rel="noopener" href="${h.site}">${GLOBE}Official</a>`:""}<a class="chip" href="tel:${h.tel}">☎ ${h.tel}</a></div></div>`).join("")}
   <h3 class="sec">Flights & car</h3>
   <div class="card">
     <div class="d">Sep 4 — Naha → Fukuoka, arrive ≈ 12:10 (confirm)</div>
