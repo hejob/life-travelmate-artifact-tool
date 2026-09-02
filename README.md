@@ -15,7 +15,7 @@ Support tool for the Sep 3–11, 2026 family trip: Naha → Fukuoka → Yakushim
 Two published artifacts from the same source file:
 
 - **Full (synced)**: https://claude.ai/code/artifact/52b50ec3-13d1-4b18-bf75-b0bb194602f2 — capabilities `db` + `sample`. Notes/checks sync between devices, but the `db` capability makes it org-internal: it only opens for viewers signed into the owner's Claude account/org (sign in with the same account on the second phone).
-- **Lite (shareable)**: https://claude.ai/code/artifact/da231446-0040-4a53-82b2-c458357e6929 — capability `sample` only, so it can be shared with anyone from the page's share menu. Notes/checks stay per-device; Ask works for signed-in viewers. Published from a copy with the title changed to "Sankara Days Lite".
+- **Lite (shareable)**: https://claude.ai/code/artifact/da231446-0040-4a53-82b2-c458357e6929 — no capabilities at all (both `db` AND `sample` block public sharing), so it can be shared with anyone from the page's share menu. Notes/checks stay per-device; the Ask tab is hidden in this build (the `LITE` flag).
 
 - **Plan** — day-by-day timeline (JST-aware "Now" card), schematic route maps per day, Google Maps links, done-ticks synced between phones.
 - **Ideas** — curated spots per area (Yakushima/Fukuoka/Naha) with tag filters, plotted on maps.

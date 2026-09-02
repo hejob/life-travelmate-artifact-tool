@@ -8,8 +8,10 @@ out = "app/sankara-days-lite.html"
 s = open(src).read()
 assert "<title>Sankara Days</title>" in s, "main title marker not found"
 assert '<span id="syncTxt">local</span>' in s, "sync label marker not found"
+assert "const LITE=false;" in s, "LITE flag marker not found"
 s = s.replace("<title>Sankara Days</title>", "<title>Sankara Days Lite</title>", 1)
 s = s.replace('<span id="syncTxt">local</span>', '<span id="syncTxt">this device</span>', 1)
+s = s.replace("const LITE=false;", "const LITE=true;", 1)
 open(out, "w").write(s)
 print("wrote", out)
 EOF

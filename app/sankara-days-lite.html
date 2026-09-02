@@ -253,6 +253,7 @@ nav button.sel{color:var(--moss);font-weight:600}
 
 <script>
 "use strict";
+const LITE=true; /* build-lite.sh flips this: Lite build has no Claude capabilities and hides the Ask tab */
 /* ---------------- helpers ---------------- */
 const M = q => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
 const $=id=>document.getElementById(id);
@@ -589,7 +590,7 @@ function evHTML(d,ev){
         ${ev.trans&&ev.trans!=="—"?`<span class="chip trans">${esc(ev.trans)}</span>`:""}
         ${ev.flag?`<span class="chip flag">⚑ ${flags[ev.flag]||ev.flag}</span>`:""}
         ${ev.ideas?`<button class="chip" data-ideas="${ev.ideas}">Ideas ›</button>`:""}
-        ${ev.ask?`<button class="chip askbtn" data-ask="${esc(ev.ask)}">Ask Claude</button>`:""}
+        ${ev.ask&&!LITE?`<button class="chip askbtn" data-ask="${esc(ev.ask)}">Ask Claude</button>`:""}
       </div>
     </div>
     <button class="tick" data-tick="${ev.id}" aria-label="mark done"><span></span></button>
@@ -642,6 +643,7 @@ function askRules(){
   +"\nAnswer for a phone screen: short, concrete, decision-ready. Recommend specific named places with Japanese names in parentheses, realistic travel times, and opening-hours cautions. September is typhoon season — mention weather checks when relevant. If unsure about current facts (hours, closures), say to verify locally. No markdown headers; plain text with short lines or dashes.";
 }
 function renderSuggest(){
+  if(LITE){$("askOff").hidden=false;$("askDays").innerHTML="";$("suggest").innerHTML="";return;}
   $("askDays").innerHTML=`<div class="lbl">Day recommendations</div>`+
     DAYS.map(d=>`<button class="fchip" data-d="${d.n}">9/${d.n}</button>`).join("");
   $("askDays").querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{
@@ -826,7 +828,7 @@ function setTab(t){
   curTab=t;
   document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("sel",p.id==="pane-"+t));
   document.querySelectorAll("nav [data-tab]").forEach(b=>b.classList.toggle("sel",b.dataset.tab===t));
-  $("askbar").classList.toggle("sel",t==="ask");
+  $("askbar").classList.toggle("sel",t==="ask"&&!LITE);
   $("strip").style.display=(t==="plan")?"":"none";
   if(t==="plan")renderPlan();
   if(t==="ideas")renderIdeas();
@@ -849,10 +851,11 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
   if(today>DAYS[DAYS.length-1].iso) curDay=DAYS[DAYS.length-1].iso;
   checks=lsGet("checks",{});
   notes=lsGet("notes",[]);
+  if(LITE){const b=document.querySelector('nav [data-tab="ask"]');if(b)b.style.display="none";}
   buildStrip(); renderPlan();
   setInterval(()=>{ if(curTab==="plan")renderPlan(); },60000);
 
-  if(window.claude&&claude.use){
+  if(window.claude&&claude.use&&!LITE){
     claude.use("db").then(d=>{
       if(!d)return;
       db=d;
@@ -868,7 +871,7 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
         if(curTab==="notes")renderNotes();
       },()=>{});
     }).catch(()=>{});
-    claude.use("sample").then(s=>{
+    if(!LITE)claude.use("sample").then(s=>{
       if(s){ sampleFn=s; }
       else if(curTab==="ask"){ $("askOff").hidden=false; }
     }).catch(()=>{});

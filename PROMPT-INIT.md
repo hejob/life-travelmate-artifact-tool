@@ -89,3 +89,5 @@ Want any tweaks tonight — different ideas, a place you already have in mind fo
 - note: add tag: todo, buy, idea, later, other days, memo, etc.
 - ideas: more, and if good, show positions on maps
 - ask: give some recommendations for different days (select the date)
+
+lite: for sharing. cannot use sharing db or claude?
