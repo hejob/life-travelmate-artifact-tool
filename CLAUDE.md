@@ -24,3 +24,20 @@ Publish warnings on Lite about `use("db")`/`use("sample")` being undeclared are 
 - All times are JST (`Asia/Tokyo` via Intl); itinerary data is the `DAYS` array; ideas in `IDEAS` (with `ll` coords); shared state via db doc `trip/shared` (checks) + collection `notes`, with localStorage fallback.
 - English + Japanese place names everywhere; keep both when adding content.
 - Facts marked "confirm" in the plan (flight times) are user-provided estimates; verify transport/hours claims via web search before hardcoding them (as done for the Hilton Sea Hawk shuttle).
+
+## Mobile checks before publishing
+
+UI changes must be verified with the Playwright harness in `scripts/test/`
+(see its README). `app/sankara-days.html` has no `<meta viewport>` of its own —
+the artifact wrapper injects one at publish time — so run
+`node scripts/test/preview.js` first or every mobile measurement is taken at a
+980px layout and is meaningless.
+
+Guardrails the audit enforces: 44x44 CSS px hit targets (compact chips may keep
+a smaller painted box if an `::after` overlay carries the target), 16px minimum
+font on every form control (below that iOS Safari zooms on focus), and WCAG
+1.4.3 contrast in both light and dark. Text on an accent fill uses
+`--on-accent`, which flips to a dark ink in dark mode — white fails there.
+
+Drag-to-reorder listens on `document`, not the handle: re-inserting the dragged
+row drops its pointer capture, so a handle-scoped `pointerup` never arrives.

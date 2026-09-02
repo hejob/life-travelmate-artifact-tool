@@ -4,10 +4,11 @@
 :root{
   --bg:#F7F6F1; --surface:#FFFFFF; --surface2:#EFEEE6;
   --ink:#1B241E; --ink2:#5A645C; --line:#DDE2DA;
-  --moss:#3E6B4F; --moss-soft:#E3ECE4; --tide:#33627A; --cedar:#8A6D4B;
-  --amber:#9A6A1B; --amber-soft:#F4E8D2;
-  --now:#3E6B4F; --done:#9AA79D;
+  --moss:#3E6B4F; --moss-soft:#E3ECE4; --tide:#33627A; --cedar:#75593A;
+  --amber:#845914; --amber-soft:#F4E8D2;
+  --now:#3E6B4F; --done:#6F7971;
   --sea:#DCE7E9; --land:#EDEAE0; --landline:#D6D1C2;
+  --on-accent:#FFFFFF;
   --shadow:0 1px 3px rgba(27,36,30,.08);
 }
 @media (prefers-color-scheme: dark){
@@ -16,8 +17,9 @@
     --ink:#E7EAE3; --ink2:#9DA89F; --line:#2E3830;
     --moss:#82B190; --moss-soft:#24352A; --tide:#84B4CC; --cedar:#C4A47C;
     --amber:#D9A84E; --amber-soft:#3A3120;
-    --now:#82B190; --done:#5A665C;
+    --now:#82B190; --done:#8A968C;
     --sea:#162327; --land:#242C25; --landline:#33402F;
+    --on-accent:#101711;
     --shadow:0 1px 3px rgba(0,0,0,.35);
   }
 }
@@ -26,11 +28,19 @@
   --ink:#E7EAE3; --ink2:#9DA89F; --line:#2E3830;
   --moss:#82B190; --moss-soft:#24352A; --tide:#84B4CC; --cedar:#C4A47C;
   --amber:#D9A84E; --amber-soft:#3A3120;
-  --now:#82B190; --done:#5A665C;
+  --now:#82B190; --done:#8A968C;
   --sea:#162327; --land:#242C25; --landline:#33402F;
+  --on-accent:#101711;
   --shadow:0 1px 3px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
+/* Mobile guardrails (Apple HIG 44pt / WCAG 2.5.5) — every control is at least
+   44x44 CSS px. Dense inline chips keep their compact look and get the extra
+   height as an invisible ::after hit area instead. All form controls are 16px
+   so iOS Safari does not zoom the page when one takes focus. */
+:root{--tap:44px;--kb:0px}
+button,a,.tick,.ntick{-webkit-touch-callout:none}
+input,select,textarea{font-size:16px}
 body{
   background:var(--bg); color:var(--ink); margin:0;
   font:16px/1.55 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Segoe UI",sans-serif;
@@ -43,10 +53,10 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 
 /* header */
 header{padding:14px 0 8px}
-.brand{display:flex;align-items:baseline;gap:10px}
-.brand h1{font-family:"Shippori Mincho","Hiragino Mincho ProN",serif;font-size:22px;font-weight:700;margin:0;letter-spacing:.02em}
-.brand .sub{color:var(--ink2);font-size:12.5px}
-.sync{margin-left:auto;font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:5px}
+.brand{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.brand h1{flex:0 0 auto;font-family:"Shippori Mincho","Hiragino Mincho ProN",serif;font-size:clamp(19px,5.6vw,22px);font-weight:700;margin:0;letter-spacing:.02em;white-space:nowrap}
+.brand .sub{order:3;width:100%;color:var(--ink2);font-size:12.5px;margin-top:1px}
+.sync{order:2;margin-left:auto;flex:none;font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px}
 .sync .dot{width:7px;height:7px;border-radius:50%;background:var(--done)}
 .sync.on .dot{background:var(--moss)}
 
@@ -57,8 +67,8 @@ header{padding:14px 0 8px}
 .daychip{flex:0 0 auto;min-width:52px;padding:6px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);text-align:center}
 .daychip .n{font-family:"Shippori Mincho",serif;font-size:17px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
 .daychip .w{font-size:10.5px;color:var(--ink2);letter-spacing:.05em}
-.daychip.sel{background:var(--moss);border-color:var(--moss);color:#fff}
-.daychip.sel .w{color:rgba(255,255,255,.85)}
+.daychip.sel{background:var(--moss);border-color:var(--moss);color:var(--on-accent)}
+.daychip.sel .w{color:color-mix(in srgb,var(--on-accent) 82%,transparent)}
 .daychip.today:not(.sel){border-color:var(--moss);color:var(--moss)}
 .daychip.today:not(.sel) .w{color:var(--moss)}
 
@@ -81,15 +91,19 @@ header{padding:14px 0 8px}
 .mp-leg.act{stroke:var(--moss);stroke-width:3;stroke-dasharray:none;opacity:1}
 .mp-leglbl{font-size:11px;fill:var(--ink2);text-anchor:middle}
 .mp-leglbl.act{fill:var(--moss);font-weight:700}
-.mp-m.stop circle{fill:var(--moss);stroke:#fff;stroke-width:1.5}
-.mp-m.idea circle{fill:var(--tide);stroke:#fff;stroke-width:1.2}
+.mp-m.stop circle{fill:var(--moss);stroke:var(--sea);stroke-width:1.5}
+.mp-m.idea circle{fill:var(--tide);stroke:var(--sea);stroke-width:1.2}
 .mp-m.city circle{fill:var(--ink)}
 .mp-m.ctx circle{fill:var(--ink2)}
-.mp-n{fill:#fff;font-size:9.5px;font-weight:700;text-anchor:middle}
+.mp-n{fill:var(--on-accent);font-size:9.5px;font-weight:700;text-anchor:middle}
 .mp-lbl{font-size:10px;fill:var(--ink);stroke:var(--sea);stroke-width:2.5;paint-order:stroke;stroke-linejoin:round}
 .mp-m.city .mp-lbl{font-size:11.5px;font-weight:700}
 .mp-m.ctx .mp-lbl{fill:var(--ink2);font-size:9px}
-.map-cap{font-size:11px;color:var(--ink2);margin:0 0 10px}
+.map-cap{font-size:12px;color:var(--ink2);margin:0 0 10px}
+.linkrow{display:flex;align-items:center;min-height:var(--tap);border-bottom:1px solid var(--line);font-size:14.5px}
+.linkrow:last-child{border-bottom:none}
+.linkrow a{flex:1;display:flex;align-items:center;min-height:var(--tap);text-decoration:none}
+.linkrow:active{background:var(--surface2)}
 
 /* timeline */
 .tl{margin:10px 0 24px;display:flex;flex-direction:column;gap:8px}
@@ -102,19 +116,24 @@ header{padding:14px 0 8px}
 .ev .title{font-weight:600;font-size:15.5px}
 .jp{color:var(--ink2);font-weight:400;font-size:13.5px}
 .ev .note{font-size:13px;color:var(--ink2);margin-top:3px}
-.meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
-.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2.5px 9px;background:var(--surface2);color:var(--ink);text-decoration:none}
-.chip svg{width:11px;height:11px;flex:none}
+.meta{display:flex;flex-wrap:wrap;gap:8px;row-gap:10px;margin-top:9px}
+.chip{display:inline-flex;align-items:center;gap:5px;min-height:34px;font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--surface2);color:var(--ink);text-decoration:none}
+.chip svg{width:12px;height:12px;flex:none}
+/* only the tappable chips get the enlarged hit area; spans stay inert */
+a.chip,button.chip{position:relative}
+a.chip::after,button.chip::after{content:"";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:var(--tap)}
+a.chip:active,button.chip:active{background:var(--moss-soft);border-color:var(--moss)}
 .chip.map{color:var(--tide);border-color:color-mix(in srgb,var(--tide) 35%,transparent)}
 .chip.site{color:var(--moss);border-color:color-mix(in srgb,var(--moss) 35%,transparent)}
 .chip.trans{color:var(--cedar)}
 .chip.fl{color:var(--tide);border-color:color-mix(in srgb,var(--tide) 45%,transparent);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.03em}
 .chip.flag{color:var(--amber);background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 40%,transparent);font-weight:600}
 .chip.askbtn{color:var(--moss);border-color:var(--moss);font-weight:600}
-.tick{flex:0 0 26px;align-self:flex-start;padding-top:2px}
-.tick span{display:block;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);position:relative}
+.tick{flex:0 0 var(--tap);width:var(--tap);height:var(--tap);align-self:flex-start;margin:-6px -8px 0 0;display:flex;align-items:center;justify-content:center}
+.tick:active span{border-color:var(--moss);background:var(--moss-soft)}
+.tick span{display:block;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);position:relative}
 .ev.done .tick span{background:var(--moss);border-color:var(--moss)}
-.ev.done .tick span::after{content:"";position:absolute;left:6px;top:3.5px;width:6px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(40deg)}
+.ev.done .tick span::after{content:"";position:absolute;left:7px;top:4px;width:6px;height:11px;border:solid var(--on-accent);border-width:0 2px 2px 0;transform:rotate(40deg)}
 
 /* tabs content */
 .pane{display:none}
@@ -122,53 +141,59 @@ header{padding:14px 0 8px}
 h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
 
 /* ideas + generic filter chips */
-.filters{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
-.fchip{font-size:12.5px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;color:var(--ink2)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.fchip{display:inline-flex;align-items:center;justify-content:center;min-height:var(--tap);font-size:13.5px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:0 15px;color:var(--ink2);text-align:center}
+.fchip:active{background:var(--surface2);transform:scale(.97)}
 .fchip.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .filters .lbl{width:100%;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-top:6px}
 .idea{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:8px;box-shadow:var(--shadow);display:flex;gap:10px}
-.idea .num{flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:var(--tide);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.idea .num{flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:var(--tide);color:var(--on-accent);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px}
 .idea .bd{flex:1;min-width:0}
 .idea .title{font-weight:600;font-size:15px}
 .idea .note{font-size:13px;color:var(--ink2);margin-top:2px}
 
 /* ask */
 .chat{display:flex;flex-direction:column;gap:10px;margin:14px 0}
-.msg{max-width:88%;border-radius:14px;padding:9px 13px;font-size:14.5px;white-space:pre-wrap;overflow-wrap:break-word}
-.msg.user{align-self:flex-end;background:var(--moss);color:#fff;border-bottom-right-radius:4px}
+.msg{max-width:88%;border-radius:14px;padding:10px 14px;font-size:15px;white-space:pre-wrap;overflow-wrap:break-word}
+.msg.user{align-self:flex-end;background:var(--moss);color:var(--on-accent);border-bottom-right-radius:4px}
 .msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
 .msg.bot.thinking{color:var(--ink2);font-style:italic}
 .suggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.askbar{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line);padding:8px 14px;display:none}
+.askbar{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom) + var(--kb));background:var(--bg);border-top:1px solid var(--line);padding:8px 14px;display:none}
 .askbar.sel{display:block}
 .askbar .row{max-width:640px;margin:0 auto;display:flex;gap:8px}
-.askbar textarea{flex:1;resize:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit;font-size:14.5px;max-height:96px}
-.askbar .go{background:var(--moss);color:#fff;border-radius:12px;padding:0 16px;font-weight:600}
-.askbar .go.stop{background:var(--amber)}
+.askbar textarea{flex:1;resize:none;min-height:var(--tap);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:11px 12px;font:inherit;font-size:16px;max-height:96px}
+.askbar .go{background:var(--moss);color:var(--on-accent);border-radius:12px;padding:0 18px;min-height:var(--tap);font-weight:600}
+.askbar .go:active{filter:brightness(.92)}
+.askbar .go.stop{background:var(--amber);color:var(--on-accent)}
 .askoff{color:var(--ink2);font-size:13.5px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:14px}
 
 /* notes */
-.notebar{display:flex;gap:6px;margin:14px 0 6px}
-.notebar input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit;font-size:14.5px}
-.notebar select{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:0 6px;font:inherit;font-size:13px;max-width:96px}
-.notebar button{background:var(--moss);color:#fff;border-radius:12px;padding:0 14px;font-weight:600}
+.notebar{display:flex;gap:8px;margin:14px 0 6px}
+.notebar input,.notebar select,.notebar button{min-height:48px}
+.notebar input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit;font-size:16px}
+.notebar select{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:0 6px;font:inherit;font-size:16px;max-width:104px}
+.notebar button{background:var(--moss);color:var(--on-accent);border-radius:12px;padding:0 16px;font-weight:600}
+.notebar button:active{filter:brightness(.92)}
 .note-item{display:flex;gap:9px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:7px}
 .note-item.done .txt{text-decoration:line-through;color:var(--done)}
-.note-item .ntick{flex:0 0 22px;padding-top:1px}
-.note-item .ntick span{display:block;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);position:relative}
+.note-item .ntick{flex:0 0 var(--tap);width:var(--tap);height:var(--tap);margin:-8px -6px 0 -8px;display:flex;align-items:center;justify-content:center}
+.note-item .ntick:active span{border-color:var(--moss)}
+.note-item .ntick span{display:block;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);position:relative}
 .note-item.done .ntick span{background:var(--moss);border-color:var(--moss)}
-.note-item.done .ntick span::after{content:"";position:absolute;left:5.5px;top:2.5px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(40deg)}
+.note-item.done .ntick span::after{content:"";position:absolute;left:6.5px;top:3.5px;width:5px;height:10px;border:solid var(--on-accent);border-width:0 2px 2px 0;transform:rotate(40deg)}
 .note-item .bd{flex:1;min-width:0}
 .note-item .txt{font-size:14.5px;overflow-wrap:break-word}
 .note-item .sub{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap}
-.note-item .tagchip{font-size:10.5px;border-radius:999px;padding:1.5px 8px;background:var(--surface2);border:1px solid var(--line);color:var(--ink2);font-weight:600;letter-spacing:.03em}
+.note-item .tagchip{font-size:11px;border-radius:999px;padding:1.5px 8px;background:var(--surface2);border:1px solid var(--line);color:var(--ink2);font-weight:600;letter-spacing:.03em}
 .note-item .tagchip.todo{color:var(--amber);background:var(--amber-soft)}
 .note-item .tagchip.buy{color:var(--cedar)}
 .note-item .tagchip.idea{color:var(--moss)}
 .note-item .tagchip.later{color:var(--tide)}
-.note-item .when{font-size:11px;color:var(--ink2)}
-.note-item .act{color:var(--ink2);font-size:14px;padding:0 4px;flex:none}
-.note-item .editbox{width:100%;border:1px solid var(--moss);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 9px;font:inherit;font-size:14.5px}
+.note-item .when{font-size:12px;color:var(--ink2)}
+.note-item .act{color:var(--ink2);font-size:16px;flex:none;width:var(--tap);height:var(--tap);margin:-8px 0 0;display:flex;align-items:center;justify-content:center;border-radius:10px}
+.note-item .act:active{background:var(--surface2)}
+.note-item .editbox{width:100%;min-height:var(--tap);border:1px solid var(--moss);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 10px;font:inherit;font-size:16px}
 .showdone{margin:6px 0 14px}
 
 /* info */
@@ -176,20 +201,21 @@ h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
 .card .t{font-weight:600}
 .card .jp2{color:var(--ink2);font-size:13px}
 .card .d{font-size:13px;color:var(--ink2);margin-top:2px}
-.checkrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.checkrow{display:flex;align-items:center;gap:12px;min-height:48px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.checkrow:active{background:var(--surface2)}
 .checkrow:last-child{border-bottom:none}
-.checkrow .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);flex:none;position:relative}
+.checkrow .box{width:24px;height:24px;border-radius:6px;border:1.5px solid var(--line);flex:none;position:relative}
 .checkrow.on .box{background:var(--moss);border-color:var(--moss)}
-.checkrow.on .box::after{content:"";position:absolute;left:5.5px;top:2.5px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(40deg)}
+.checkrow.on .box::after{content:"";position:absolute;left:7.5px;top:4px;width:6px;height:11px;border:solid var(--on-accent);border-width:0 2px 2px 0;transform:rotate(40deg)}
 .checkrow.on{color:var(--done);text-decoration:line-through}
 
 /* conditions strip (sun + tide) */
 .cond{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
 .cond .c{display:inline-flex;align-items:baseline;gap:5px;font-size:12px;color:var(--ink2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-variant-numeric:tabular-nums}
-.cond .c b{font-weight:700;color:var(--ink);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.cond .c b{font-weight:700;color:var(--ink);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
 .cond .c.tide{border-color:color-mix(in srgb,var(--tide) 35%,transparent)}
 .cond .c.tide b{color:var(--tide)}
-.cond .src{font-size:11px;color:var(--ink2);width:100%;margin-top:3px;line-height:1.45}
+.cond .src{font-size:12px;color:var(--ink2);width:100%;margin-top:3px;line-height:1.45}
 .dayhead .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 
 /* emergency card */
@@ -198,49 +224,60 @@ h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
 .erow:last-child{border-bottom:none}
 .erow .en{font-weight:600;font-size:14.5px}
 .erow .ejp{color:var(--ink2);font-size:12.5px}
-.erow .etel{margin-left:auto;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--amber)}
+.erow .etel{margin-left:auto;display:inline-flex;align-items:center;min-height:var(--tap);padding:0 6px;margin-right:-6px;border-radius:10px;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--amber);text-decoration:none}
+.erow .etel:active{background:color-mix(in srgb,var(--amber) 18%,transparent)}
 .erow .etel.off{color:var(--ink2);font-weight:400;font-size:13px}
 .erow .enote{width:100%;font-size:12.5px;color:var(--ink2);margin-top:1px}
 .erow .emap{margin-top:4px}
 
 /* bookings */
-.brow{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+.brow{display:flex;gap:12px;align-items:center;min-height:52px;padding:6px 0;border-bottom:1px solid var(--line)}
 .brow:last-child{border-bottom:none}
 .brow .bk{flex:0 0 38%;font-size:12.5px;color:var(--ink2);line-height:1.35}
-.brow .bv{flex:1;min-width:0;font-size:14px;overflow-wrap:break-word;cursor:pointer}
-.brow .bv.empty{color:var(--done)}
-.brow input{width:100%;border:1px solid var(--moss);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 8px;font:inherit;font-size:14px}
+.brow .bv{flex:1;min-width:0;display:flex;align-items:center;min-height:var(--tap);font-size:15px;overflow-wrap:break-word;cursor:pointer;border-radius:8px}
+.brow .bv:active{background:var(--surface2)}
+.brow .bv.empty{color:var(--ink2);opacity:.85}
+.brow input{width:100%;min-height:var(--tap);border:1px solid var(--moss);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit;font-size:16px}
 
 /* schedule editing */
-.editbar{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.editbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
 .editbar .fchip.on{background:var(--moss);color:#fff;border-color:var(--moss);font-weight:600}
 .fchip.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
-.edited{font-size:11.5px;color:var(--amber);margin-top:6px}
-.ev.editing{border-style:dashed}
-.ev.dragging{opacity:.9;border-color:var(--moss);box-shadow:0 8px 22px rgba(0,0,0,.20)}
-.evacts{display:flex;flex-direction:column;gap:5px;align-items:center;flex:0 0 30px}
-.evacts button{width:28px;height:26px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);color:var(--ink2);font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center}
+.edited{font-size:12.5px;color:var(--amber);margin-top:6px}
+.ev.dragging{border-color:var(--moss);border-style:solid;box-shadow:0 10px 26px rgba(0,0,0,.22);transform:scale(1.015)}
+.tl.dragging-on{-webkit-user-select:none;user-select:none}
+.ev.editing{flex-wrap:wrap}
+.evacts{display:flex;flex-direction:row;justify-content:flex-end;align-items:center;gap:8px;flex:1 0 100%;margin:9px 0 0;padding-top:9px;border-top:1px solid var(--line)}
+.evacts button{width:var(--tap);height:var(--tap);border-radius:11px;border:1px solid var(--line);background:var(--surface2);color:var(--ink2);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center}
+.evacts button:active{background:var(--moss-soft);border-color:var(--moss)}
 .evacts button.del{color:var(--amber)}
-.evacts button.del.arm{width:auto;padding:0 7px;font-size:10.5px;font-weight:700;background:var(--amber-soft);border-color:var(--amber)}
-.evacts .handle{touch-action:none;cursor:grab;font-size:15px}
+.evacts button.del.arm{width:auto;min-width:var(--tap);padding:0 10px;font-size:11.5px;font-weight:700;background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
+/* Drag handle: pointer events only (no scroll steal), and every flavour of
+   text selection / callout off so press-and-hold starts a drag instead of
+   the iOS "select word / copy" bubble. */
+.evacts .handle{touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.evacts .handle svg{width:20px;height:20px}
+.evacts .handle.armed{background:var(--moss);border-color:var(--moss);color:var(--on-accent);transform:scale(1.06)}
+.ev.editing{border-style:dashed;-webkit-user-select:none;user-select:none}
 .evform{background:var(--surface);border:1.5px solid var(--moss);border-radius:14px;padding:12px 13px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
-.evform label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin-top:3px}
-.evform input,.evform textarea,.evform select{width:100%;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:7px 9px;font:inherit;font-size:14px}
-.evform textarea{resize:vertical;min-height:54px}
-.evform .row2{display:flex;gap:7px}
-.evform .btns{display:flex;gap:7px;margin-top:7px}
-.evform .btns button{flex:1;border-radius:10px;padding:9px 0;font-weight:600;border:1px solid var(--line);background:var(--surface2)}
-.evform .btns button.pri{background:var(--moss);color:#fff;border-color:var(--moss)}
+.evform label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin-top:3px}
+.evform input,.evform textarea,.evform select{width:100%;min-width:0;min-height:var(--tap);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:9px 11px;font:inherit;font-size:16px}
+.evform textarea{resize:vertical;min-height:76px}
+.evform .row2{display:flex;gap:8px}
+.evform .btns{display:flex;gap:8px;margin-top:9px}
+.evform .btns button{flex:1;min-height:48px;border-radius:11px;font-weight:600;border:1px solid var(--line);background:var(--surface2)}
+.evform .btns button:active{filter:brightness(.94)}
+.evform .btns button.pri{background:var(--moss);color:var(--on-accent);border-color:var(--moss)}
 
 /* text sheet (offline copy-out) */
-.sheet{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line);z-index:45;padding:10px 14px 12px;display:none;box-shadow:0 -8px 24px rgba(0,0,0,.14)}
+.sheet{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom) + var(--kb));background:var(--surface);border-top:1px solid var(--line);z-index:45;padding:10px 14px 12px;display:none;box-shadow:0 -8px 24px rgba(0,0,0,.14)}
 .sheet.on{display:block}
 .sheet .inner{max-width:640px;margin:0 auto}
 .sheet .hd{display:flex;align-items:center;gap:6px;margin-bottom:7px}
-.sheet .hd strong{font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet .hd strong{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheet .hd .sp{margin-left:auto}
-.sheet textarea{width:100%;height:32vh;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 11px;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:none}
-.sheet .hint{font-size:11.5px;color:var(--ink2);margin-top:6px}
+.sheet textarea{width:100%;height:min(32vh,240px);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 11px;font:16px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:none}
+.sheet .hint{font-size:12.5px;color:var(--ink2);margin-top:8px}
 
 /* bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:40;padding-bottom:env(safe-area-inset-bottom)}
@@ -329,6 +366,7 @@ nav button.sel{color:var(--moss);font-weight:600}
 const LITE=true; /* build-lite.sh flips this: Lite build has no Claude capabilities and hides the Ask tab */
 /* ---------------- helpers ---------------- */
 const M = q => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+const GRIP='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
 const GLOBE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18-2.5-2.7-2.5-15.3 0-18z"/></svg>';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -400,12 +438,18 @@ function fitProj(area,extraPts){
   return {W,H,x:g=>(g-lo0)/(lo1-lo0)*W,y:t=>(la1-t)/(la1-la0)*H};
 }
 function polyPath(pr,pts){return pts.map((p,i)=>(i?"L":"M")+pr.x(p[1]).toFixed(1)+" "+pr.y(p[0]).toFixed(1)).join("")+"Z"}
-function marker(pr,ll,n,label,cls,q,la,ld){
+function marker(pr,ll,n,label,cls,q,la,ld,hitR){
   const x=pr.x(ll[1]),y=pr.y(ll[0]);
   const r=cls==="stop"?8:cls==="idea"?7.5:cls==="city"?5:3.2;
   const end=la==="end";
   const dy=(ld||0);
-  let m=`<g class="mp-m ${cls}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}"/>`;
+  let m=`<g class="mp-m ${cls}">`;
+  /* Invisible hit circle under linked markers: the visible dot is far below any
+     sane touch target. mapSVG sizes it to half the gap to the nearest marker so
+     neighbours can never steal each other's taps, and every marker also has a
+     full-size Map chip in the list below (WCAG 2.5.5 equivalent-control). */
+  if(q) m+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(hitR||24).toFixed(1)}" fill="transparent"/>`;
+  m+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}"/>`;
   if(n!=null)m+=`<text x="${x.toFixed(1)}" y="${(y+3).toFixed(1)}" class="mp-n">${n}</text>`;
   if(label)m+=`<text x="${(end?x-r-3:x+r+3).toFixed(1)}" y="${(y+3.5+dy).toFixed(1)}" class="mp-lbl"${end?' text-anchor="end"':""}>${esc(label)}</text>`;
   m+="</g>";
@@ -417,6 +461,21 @@ function mapSVG(spec){
   (spec.ctx||[]).forEach(k=>extra.push(PL[k].ll));
   (spec.ideas||[]).forEach(i=>extra.push(i.ll));
   const pr=fitProj(spec.area,extra);
+  /* every marker that will be drawn, so hit circles can be spaced apart */
+  const pts=[];
+  if(spec.area==="ov") ["naha_c","fuk_c","yaku_c"].forEach(k=>pts.push(PL[k].ll));
+  (spec.stops||[]).forEach(k=>pts.push(PL[k].ll));
+  (spec.ctx||[]).forEach(k=>pts.push(PL[k].ll));
+  (spec.ideas||[]).forEach(i=>pts.push(i.ll));
+  const hitOf=ll=>{
+    const x=pr.x(ll[1]), y=pr.y(ll[0]);
+    let best=Infinity;
+    for(const p of pts){
+      const dx=pr.x(p[1])-x, dy=pr.y(p[0])-y, d=Math.hypot(dx,dy);
+      if(d>0.5&&d<best) best=d;
+    }
+    return Math.max(16,Math.min(40,best/2));
+  };
   let s=`<svg viewBox="0 0 ${pr.W} ${pr.H}" class="mp" role="img" aria-label="schematic map">`;
   s+=`<rect width="${pr.W}" height="${pr.H}" class="mp-sea"/>`;
   for(const Lp of AREAS[spec.area].lands) s+=`<path d="${polyPath(pr,Lp)}" class="mp-land"/>`;
@@ -431,19 +490,19 @@ function mapSVG(spec){
       const tx=(x1+2*cx+x2)/4,ty=(y1+2*cy+y2)/4;
       s+=`<text x="${tx.toFixed(1)}" y="${(ty-5).toFixed(1)}" class="mp-leglbl${act?" act":""}">${lg.d}</text>`;
     });
-    ["naha_c","fuk_c","yaku_c"].forEach(k=>{const p=PL[k];s+=marker(pr,p.ll,null,p.l,"city",null,p.la,p.ld);});
+    ["naha_c","fuk_c","yaku_c"].forEach(k=>{const p=PL[k];s+=marker(pr,p.ll,null,p.l,"city",null,p.la,p.ld,hitOf(p.ll));});
   }
   const stops=(spec.stops||[]).map(k=>PL[k]);
   if(stops.length>1){
     s+=`<path d="${stops.map((p,i)=>(i?"L":"M")+pr.x(p.ll[1]).toFixed(1)+" "+pr.y(p.ll[0]).toFixed(1)).join("")}" class="mp-route"/>`;
   }
-  (spec.ctx||[]).forEach(k=>{const p=PL[k];s+=marker(pr,p.ll,null,p.l,"ctx",p.q,p.la,p.ld);});
+  (spec.ctx||[]).forEach(k=>{const p=PL[k];s+=marker(pr,p.ll,null,p.l,"ctx",p.q,p.la,p.ld,hitOf(p.ll));});
   const lastDup=stops.length>2&&spec.stops[0]===spec.stops[spec.stops.length-1];
   stops.forEach((p,i)=>{
     if(lastDup&&i===stops.length-1)return;
-    s+=marker(pr,p.ll,i+1,p.l,"stop",p.q||p.l,p.la,p.ld);
+    s+=marker(pr,p.ll,i+1,p.l,"stop",p.q||p.l,p.la,p.ld,hitOf(p.ll));
   });
-  (spec.ideas||[]).forEach((it,i)=>{s+=marker(pr,it.ll,i+1,it.name,"idea",it.mapq,it.la,it.ld);});
+  (spec.ideas||[]).forEach((it,i)=>{s+=marker(pr,it.ll,i+1,it.name,"idea",it.mapq,it.la,it.ld,hitOf(it.ll));});
   s+="</svg>";
   return `<div class="map-wrap">${s}</div>`;
 }
@@ -880,7 +939,7 @@ function evHTML(d,ev){
   const st=evStatus(d,ev);
   const flags={tbd:"to decide",reserve:"book needed",confirm:"confirm time",decide:"flexible"};
   const pin='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
-  return `<div class="ev ${st}" data-ev="${ev.id}">
+  return `<div class="ev ${st}${editMode?" editing":""}" data-ev="${ev.id}">
     <div class="time">${esc(ev.time||"")}</div>
     <div class="body">
       <div class="title">${esc(ev.title)} <span class="jp">${esc(ev.jp||"")}</span></div>
@@ -899,7 +958,7 @@ function evHTML(d,ev){
       ?`<div class="evacts">
           <button data-eedit="${ev.id}" aria-label="edit item">✎</button>
           <button class="del${pendingDel===ev.id?" arm":""}" data-edel="${ev.id}" aria-label="delete item">${pendingDel===ev.id?"Delete?":"✕"}</button>
-          ${editingEv?"":`<button class="handle" data-drag="${ev.id}" aria-label="drag to reorder">⠿</button>`}
+          ${editingEv?"":`<button class="handle" data-drag="${ev.id}" aria-label="drag to reorder">${GRIP}</button>`}
         </div>`
       :`<button class="tick" data-tick="${ev.id}" aria-label="mark done"><span></span></button>`}
   </div>`;
@@ -994,6 +1053,16 @@ function bindEdit(d){
   };
   bindDrag(root);
 }
+/* Reorder by finger.
+   - A dedicated handle, so a drag can never be confused with a scroll or a tap
+     on the card behind it.
+   - Press-and-hold (HOLD_MS) arms the drag: a brush past the handle does
+     nothing, and the armed state is visible before anything moves.
+   - touch-action:none + user-select:none + touch-callout:none on the handle
+     stop iOS from opening the "select / copy" bubble on that same long press.
+   - Auto-scrolls when the finger nears the top or bottom of the screen, so a
+     long day can be reordered without letting go. */
+const HOLD_MS=180, MOVE_CANCEL=12, EDGE=90, EDGE_STEP=14;
 function bindDrag(root){
   const list=root.querySelector(".tl");
   if(!list) return;
@@ -1001,10 +1070,20 @@ function bindDrag(root){
     h.addEventListener("pointerdown",down=>{
       const row=h.closest(".ev"); if(!row) return;
       down.preventDefault();
-      try{ h.setPointerCapture(down.pointerId); }catch(e){}
-      row.classList.add("dragging");
-      const move=e=>{
-        const y=e.clientY;
+      let armed=false, timer=0, scroller=0;
+      const x0=down.clientX, y0=down.clientY, pid=down.pointerId;
+      /* Listen on the document, not the handle. Reordering re-inserts the row —
+         and re-inserting an element drops its pointer capture, so pointerup
+         would never come back to the handle and the drop would be lost. */
+      const arm=()=>{
+        armed=true;
+        h.classList.add("armed");
+        row.classList.add("dragging");
+        list.classList.add("dragging-on");
+        if(navigator.vibrate) try{ navigator.vibrate(12); }catch(e){}
+      };
+      timer=setTimeout(arm,HOLD_MS);
+      const place=y=>{
         for(const r of list.querySelectorAll(".ev")){
           if(r===row) continue;
           const b=r.getBoundingClientRect();
@@ -1014,16 +1093,34 @@ function bindDrag(root){
           }
         }
       };
-      const up=()=>{
-        h.removeEventListener("pointermove",move);
-        h.removeEventListener("pointerup",up);
-        h.removeEventListener("pointercancel",up);
-        row.classList.remove("dragging");
-        commitOrder(list);
+      const move=e=>{
+        if(e.pointerId!==pid) return;
+        if(!armed){
+          if(Math.abs(e.clientY-y0)>MOVE_CANCEL||Math.abs(e.clientX-x0)>MOVE_CANCEL){ clearTimeout(timer); }
+          return;
+        }
+        const y=e.clientY;
+        place(y);
+        clearInterval(scroller);
+        const dy=y<EDGE?-EDGE_STEP:(y>window.innerHeight-EDGE?EDGE_STEP:0);
+        if(dy) scroller=setInterval(()=>{ window.scrollBy(0,dy); place(y); },16);
       };
-      h.addEventListener("pointermove",move);
-      h.addEventListener("pointerup",up);
-      h.addEventListener("pointercancel",up);
+      const up=e=>{
+        if(e&&e.pointerId!=null&&e.pointerId!==pid) return;
+        clearTimeout(timer); clearInterval(scroller);
+        document.removeEventListener("pointermove",move);
+        document.removeEventListener("pointerup",up);
+        document.removeEventListener("pointercancel",up);
+        window.removeEventListener("blur",up);
+        h.classList.remove("armed");
+        row.classList.remove("dragging");
+        list.classList.remove("dragging-on");
+        if(armed) commitOrder(list);
+      };
+      document.addEventListener("pointermove",move);
+      document.addEventListener("pointerup",up);
+      document.addEventListener("pointercancel",up);
+      window.addEventListener("blur",up);
     });
   });
 }
@@ -1294,7 +1391,7 @@ function renderInfo(){
     ${CHECKLIST.map(c=>`<div class="checkrow${checks[c.id]?" on":""}" data-chk="${c.id}"><span class="box"></span><span>${esc(c.t)}</span></div>`).join("")}
   </div>
   <h3 class="sec">Useful links</h3>
-  <div class="card">${LINKS.map(l=>`<div class="d" style="margin:4px 0"><a target="_blank" rel="noopener" href="${l.u}">${esc(l.t)}</a></div>`).join("")}</div>
+  <div class="card">${LINKS.map(l=>`<div class="linkrow"><a target="_blank" rel="noopener" href="${l.u}">${esc(l.t)}</a></div>`).join("")}</div>
   <h3 class="sec">Schedule data</h3>
   <div class="filters" style="margin-top:0">
     <button class="fchip" id="planExportAll">⤓ Export all days (JSON)</button>
@@ -1379,6 +1476,32 @@ $("sheetCopy").onclick=async()=>{
 };
 $("askGo").onclick=sendAsk;
 $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAsk();}});
+
+/* The on-screen keyboard shrinks the visual viewport but not the layout
+   viewport, so anything pinned to the bottom ends up underneath it. --kb is
+   how much of the screen the keyboard is covering. */
+(function keyboardInset(){
+  const vv=window.visualViewport; if(!vv) return;
+  let cur="0px";
+  const sync=()=>{
+    /* Only trust the gap while something is actually being typed into —
+       the visual viewport can differ from the layout viewport for other
+       reasons (browser UI, emulation), and reacting to those makes the whole
+       bottom of the screen jitter. */
+    const a=document.activeElement;
+    const typing=!!a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"||a.isContentEditable);
+    const gap=Math.max(0,Math.round(window.innerHeight-vv.height-vv.offsetTop));
+    const next=(typing&&gap>80)?gap+"px":"0px";
+    if(next===cur) return;
+    cur=next;
+    document.documentElement.style.setProperty("--kb",next);
+  };
+  vv.addEventListener("resize",sync);
+  vv.addEventListener("scroll",sync);
+  document.addEventListener("focusin",sync);
+  document.addEventListener("focusout",()=>setTimeout(sync,50));
+  sync();
+})();
 
 /* ---------------- boot ---------------- */
 (function boot(){

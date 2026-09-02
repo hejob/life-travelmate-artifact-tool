@@ -1,1 +1,9 @@
 .DS_Store
+.preview.html
+scripts/test/node_modules
+scripts/test/package.json
+scripts/test/package-lock.json
+v2-*.png
+shot-*.png
+diag-*.png
+audit.json
