@@ -108,6 +108,7 @@ header{padding:14px 0 8px}
 .chip.map{color:var(--tide);border-color:color-mix(in srgb,var(--tide) 35%,transparent)}
 .chip.site{color:var(--moss);border-color:color-mix(in srgb,var(--moss) 35%,transparent)}
 .chip.trans{color:var(--cedar)}
+.chip.fl{color:var(--tide);border-color:color-mix(in srgb,var(--tide) 45%,transparent);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.03em}
 .chip.flag{color:var(--amber);background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 40%,transparent);font-weight:600}
 .chip.askbtn{color:var(--moss);border-color:var(--moss);font-weight:600}
 .tick{flex:0 0 26px;align-self:flex-start;padding-top:2px}
@@ -428,19 +429,20 @@ const MAP_CAP=`<div class="map-cap">Schematic map — tap a marker to open Googl
 
 /* ---------------- itinerary ---------------- */
 const DAYS = [
-{iso:"2026-09-03",n:"3",dow:"Thu",title:"Naha — settle in",route:"那覇 · car drop-off, DoubleTree Shuri",
+{iso:"2026-09-03",n:"3",dow:"Thu",title:"Naha — settle in",route:"那覇 · 13:30 出発 · check-in 15:00 · Toyota 16:00",
  maps:[{area:"naha",stops:["dt_shuri"],ctx:["naha_ap","kokusai","shuri"]}],
  events:[
- {id:"d3a",time:"day",title:"Drop car at Toyota dealer",jp:"トヨタで車を整備入庫",loc:"Toyota dealer, Naha",mapq:"トヨタ 那覇市",note:"Car stays for maintenance — pick-up Sep 11 at 13:00.",trans:"Car"},
- {id:"d3b",time:"aft",title:"Check in — DoubleTree Shuri Castle",jp:"ダブルツリーbyヒルトン那覇首里城",loc:"Shuri, Naha",mapq:"ダブルツリーbyヒルトン那覇首里城",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha-shuri-castle",note:"Hilton Honors rate.",trans:"Taxi / Yui Rail"},
+ {id:"d3d",time:"13:30",s:810,e:900,title:"Set off by car",jp:"車で出発",loc:"Drive to Shuri, Naha",mapq:"ダブルツリーbyヒルトン那覇首里城",note:"Hotel first, Toyota after — the car is needed to reach the check-in.",trans:"Car"},
+ {id:"d3b",time:"15:00\n16:00",s:900,e:960,title:"Check in — DoubleTree Shuri Castle",jp:"ダブルツリーbyヒルトン那覇首里城",loc:"Shuri, Naha",mapq:"ダブルツリーbyヒルトン那覇首里城",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha-shuri-castle",note:"Hilton Honors rate. Drop the bags, keep the car.",trans:"Car"},
+ {id:"d3a",time:"16:00",s:960,e:1020,title:"Drop car at Toyota dealer",jp:"トヨタで車を整備入庫",loc:"Toyota dealer, Naha",mapq:"トヨタ 那覇市",note:"Car stays for maintenance — pick-up Sep 11 at 13:00. Taxi or Yui Rail back to the hotel afterwards.",trans:"Car → Taxi / Yui Rail"},
  {id:"d3c",time:"eve",title:"Evening free",jp:"自由時間",loc:"Naha",mapq:"首里城公園",site:"https://oki-park.jp/shurijo/",note:"Shuri Castle park is next door; or head to Kokusai-dōri. See Ideas › Naha.",trans:"—",ideas:"naha"}
 ]},
 {iso:"2026-09-04",n:"4",dow:"Fri",title:"Naha → Fukuoka",route:"那覇 → 福岡 · Hilton Sea Hawk",
  maps:[{area:"ov",leg:0},{area:"fuk",stops:["fuk_ap","hilton"],ctx:["tenjin","nakasu"]}],
  events:[
  {id:"d4a",time:"8:00\n9:00",s:480,e:540,title:"Breakfast at hotel",jp:"朝食",loc:"DoubleTree Shuri",mapq:"ダブルツリーbyヒルトン那覇首里城",trans:"Walk"},
- {id:"d4b",time:"9:00",s:540,e:660,title:"To Naha Airport",jp:"那覇空港へ",loc:"Naha Airport",mapq:"那覇空港",note:"Yui Rail from Shuri ≈ 30 min direct, or taxi.",trans:"Yui Rail / Taxi"},
- {id:"d4c",time:"~12:10",s:660,e:735,title:"Fly to Fukuoka",jp:"福岡へ",loc:"Fukuoka Airport 福岡空港",mapq:"福岡空港",note:"Arrive ≈ 12:10.",trans:"Flight",flag:"confirm"},
+ {id:"d4b",time:"9:00",s:540,e:625,title:"To Naha Airport",jp:"那覇空港へ",loc:"Naha Airport",mapq:"那覇空港",note:"Yui Rail from Shuri ≈ 30 min direct, or taxi.",trans:"Yui Rail / Taxi"},
+ {id:"d4c",time:"10:25\n12:10",s:625,e:730,title:"Fly to Fukuoka",jp:"福岡へ",loc:"Fukuoka Airport 福岡空港",mapq:"福岡空港",flno:"JTA052",note:"Naha 10:25 → Fukuoka 12:10.",trans:"Flight"},
  {id:"d4d",time:"aft",s:780,e:900,title:"Check in — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",site:"https://hiltonhotels.jp/hotel/kyushu/hilton-fukuoka-sea-hawk",note:"No hotel airport shuttle (free shuttle is weekends-only). Direct Nishitetsu bus 139: domestic terminal → Hilton Sea Hawk-mae stop, ≈ 40 min, ¥440. Or subway to Tōjinmachi + taxi; taxi ≈ 20 min.",trans:"Bus 139 / Taxi"},
  {id:"d4e",time:"eve",title:"Evening free",jp:"自由時間",loc:"Fukuoka",mapq:"中洲屋台",note:"Yatai food stalls, Fukuoka Tower sunset (15 min walk). See Ideas › Fukuoka.",trans:"—",ideas:"fukuoka"}
 ]},
@@ -448,7 +450,7 @@ const DAYS = [
  maps:[{area:"ov",leg:1},{area:"yaku",stops:["yaku_ap","sankara","toroki"],ctx:["miyanoura"]}],
  events:[
  {id:"d5a",time:"am",title:"To Fukuoka Airport",jp:"福岡空港へ",loc:"Fukuoka Airport",mapq:"福岡空港",note:"Saturday: free hotel shuttle (1F group-bus door, from 10:00, every 20 min) → Tōjinmachi Stn, then subway ≈ 15 min to the airport. Or taxi ≈ 20–30 min.",trans:"Shuttle + Subway / Taxi"},
- {id:"d5b",time:"13:50\n15:00",s:830,e:900,title:"Fly to Yakushima",jp:"屋久島へ",loc:"Yakushima Airport 屋久島空港",mapq:"屋久島空港",note:"JAC propeller flight.",trans:"Flight",flag:"confirm"},
+ {id:"d5b",time:"13:50\n15:00",s:830,e:900,title:"Fly to Yakushima",jp:"屋久島へ",loc:"Yakushima Airport 屋久島空港",mapq:"屋久島空港",flno:"JAL3673",note:"Fukuoka 13:50 → Yakushima 15:00. JAC propeller flight.",trans:"Flight"},
  {id:"d5c",time:"15:00\n16:00",s:900,e:960,title:"Shuttle + check-in, Manasa Villa",jp:"sankara hotel&spa 屋久島",loc:"sankara hotel&spa",mapq:"sankara hotel&spa 屋久島",site:"https://www.sankarahotel-spa.com/",note:"Free hotel shuttle from the airport; settle into the villa.",trans:"Hotel shuttle"},
  {id:"d5d",time:"16:00\n17:00",s:960,e:1020,title:"Torōki Falls",jp:"トローキの滝",loc:"Mugio 麦生",mapq:"トローキの滝",note:"Short walk to the deck — a waterfall dropping straight into the ocean.",trans:"Car (1 h) / bicycle"},
  {id:"d5e",time:"18:00\n20:00",s:1080,e:1200,title:"Dinner — ayana",jp:"アヤナ",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"First included French-regional prix fixe.",trans:"Walk"}
@@ -485,9 +487,9 @@ const DAYS = [
  maps:[{area:"ov",leg:2},{area:"fuk",stops:["fuk_ap","hilton"],ctx:["tenjin","nakasu"]}],
  events:[
  {id:"d9a",time:"8:30\n10:00",s:510,e:600,title:"Breakfast",jp:"朝食",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Final leisurely breakfast.",trans:"Walk"},
- {id:"d9b",time:"10:00\n12:00",s:600,e:720,title:"Resort time",jp:"リゾートでのんびり",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Diamond late check-out.",trans:"—"},
- {id:"d9c",time:"12:00\n13:00",s:720,e:780,title:"Shuttle to airport",jp:"空港へ",loc:"Yakushima Airport",mapq:"屋久島空港",note:"Hotel shuttle.",trans:"Hotel shuttle"},
- {id:"d9d",time:"~16:45",s:1005,e:1080,title:"Fly to Fukuoka",jp:"福岡へ",loc:"Fukuoka Airport",mapq:"福岡空港",note:"Departure around 16:45 — confirm exact time.",trans:"Flight",flag:"confirm"},
+ {id:"d9b",time:"10:00\n13:00",s:600,e:780,title:"Resort time",jp:"リゾートでのんびり",loc:"sankara",mapq:"sankara hotel&spa 屋久島",note:"Diamond late check-out — the flight is later than first planned, so there is a real morning here.",trans:"—"},
+ {id:"d9c",time:"13:30\n14:00",s:810,e:840,title:"Shuttle to airport",jp:"空港へ",loc:"Yakushima Airport",mapq:"屋久島空港",note:"Hotel shuttle — confirm the pick-up time with the front desk for a 15:30 departure.",trans:"Hotel shuttle"},
+ {id:"d9d",time:"15:30\n16:45",s:930,e:1005,title:"Fly to Fukuoka",jp:"福岡へ",loc:"Fukuoka Airport",mapq:"福岡空港",flno:"JAL3676",note:"Yakushima 15:30 → Fukuoka 16:45.",trans:"Flight"},
  {id:"d9e",time:"eve",s:1140,e:1320,title:"Dinner with 2 friends",jp:"友人と夕食（要予約）",loc:"Fukuoka city",mapq:"博多 もつ鍋",note:"NOT YET RESERVED — pick a place and book. Motsunabe or mizutaki are great group choices; see Ideas › Fukuoka.",trans:"Subway / Taxi",flag:"reserve",ideas:"fukuoka",ask:"Recommend 3 restaurants in central Fukuoka (Tenjin/Nakasu/Hakata) for a relaxed dinner for 4 people on Sep 9 evening — local specialties like motsunabe or mizutaki, mid-range, likely to accept a same-week reservation. Include Japanese names."},
  {id:"d9f",time:"night",title:"Stay — Hilton Fukuoka Sea Hawk",jp:"ヒルトン福岡シーホーク",loc:"Momochi, Fukuoka",mapq:"ヒルトン福岡シーホーク",note:"Weekday — no free shuttle. Bus 139 from the airport (≈ 40 min, ¥440), or subway to Tōjinmachi + taxi.",trans:"Bus 139 / Taxi"}
 ]},
@@ -495,7 +497,7 @@ const DAYS = [
  maps:[{area:"ov",leg:3},{area:"naha",stops:["naha_ap","dt_naha"],ctx:["kokusai","umikaji"]}],
  events:[
  {id:"d10a",time:"am",title:"Morning free in Fukuoka",jp:"自由時間",loc:"Fukuoka",mapq:"大濠公園",site:"https://www.ohorikouen.jp/",note:"Ōhori Park, Kushida Shrine, or Canal City before the flight. See Ideas › Fukuoka.",trans:"—",ideas:"fukuoka"},
- {id:"d10b",time:"15:55\n17:35",s:955,e:1055,title:"Fly to Naha",jp:"那覇へ",loc:"Naha Airport",mapq:"那覇空港",note:"15:55 → 17:35. Weekday — no hotel shuttle to the airport: bus 139 from Hilton Sea Hawk-mae (≈ 40 min, leave buffer), or taxi.",trans:"Flight"},
+ {id:"d10b",time:"15:55\n17:35",s:955,e:1055,title:"Fly to Naha",jp:"那覇へ",loc:"Naha Airport",mapq:"那覇空港",flno:"JTA061",note:"Fukuoka 15:55 → Naha 17:35. Weekday — no hotel shuttle to the airport: bus 139 from Hilton Sea Hawk-mae (≈ 40 min, leave buffer), or taxi.",trans:"Flight"},
  {id:"d10c",time:"eve",s:1080,e:1140,title:"Check in — DoubleTree Naha",jp:"ダブルツリーbyヒルトン那覇",loc:"Asahibashi 旭橋, Naha",mapq:"ダブルツリーbyヒルトン那覇",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha",note:"Yui Rail 3 stops to Asahibashi; hotel is right by the station.",trans:"Yui Rail"},
  {id:"d10d",time:"night",title:"Evening free",jp:"自由時間",loc:"Naha",mapq:"ジャッキーステーキハウス",note:"Jacky Steak House is nearby; or Kokusai-dōri. See Ideas › Naha.",trans:"—",ideas:"naha"}
 ]},
@@ -559,7 +561,7 @@ const HOTELS=[
 {name:"DoubleTree by Hilton Naha",jp:"ダブルツリーbyヒルトン那覇（旭橋）",d:"Sep 10 · Hilton Honors",tel:"098-862-0123",site:"https://doubletree.hiltonhotels.jp/hotel/okinawa/doubletree-by-hilton-naha",mapq:"ダブルツリーbyヒルトン那覇"}
 ];
 const CHECKLIST=[
-{id:"c1",t:"Confirm all flight times + online check-in (JAL/JTA/JAC)"},
+{id:"c1",t:"Online check-in — JTA052 / JAL3673 / JAL3676 / JTA061"},
 {id:"c2",t:"Reserve Sep 9 dinner with friends in Fukuoka"},
 {id:"c3",t:"Confirm okas dinner upgrade night with sankara staff"},
 {id:"c4",t:"Driver's licenses (rental car + Toyota pick-up)"},
@@ -603,7 +605,7 @@ const TIDE={
 "2026-09-06":{lo:["07:47","20:54"],hi:["15:40"]},
 "2026-09-07":{lo:["09:16","22:07"],hi:["01:53","16:33"]},
 "2026-09-08":{lo:["10:17","22:51"],hi:["03:26","17:10"]},
-"2026-09-09":{lo:["11:05","23:29"],hi:["04:28","17:42"],to:"14:30"}
+"2026-09-09":{lo:["11:05","23:29"],hi:["04:28","17:42"],to:"13:00"}
 };
 const TIDE_SRC="Tide: JMA 2026 prediction, Tanegashima gauge (nearest official station to Yakushima). Hirauchi sea onsen is bathable \u2248 2 h either side of low tide; \u00a5300 to the village, mixed bathing.";
 
@@ -622,10 +624,10 @@ const EMERG=[
 
 /* ---------------- bookings (shared, editable) ---------------- */
 const BOOKINGS=[
-{id:"bk_f4",t:"Sep 4 flight \u00b7 Naha \u2192 Fukuoka"},
-{id:"bk_f5",t:"Sep 5 flight \u00b7 Fukuoka \u2192 Yakushima"},
-{id:"bk_f9",t:"Sep 9 flight \u00b7 Yakushima \u2192 Fukuoka"},
-{id:"bk_f10",t:"Sep 10 flight \u00b7 Fukuoka \u2192 Naha"},
+{id:"bk_f4",t:"JTA052 \u00b7 Sep 4 Naha \u2192 Fukuoka"},
+{id:"bk_f5",t:"JAL3673 \u00b7 Sep 5 Fukuoka \u2192 Yakushima"},
+{id:"bk_f9",t:"JAL3676 \u00b7 Sep 9 Yakushima \u2192 Fukuoka"},
+{id:"bk_f10",t:"JTA061 \u00b7 Sep 10 Fukuoka \u2192 Naha"},
 {id:"bk_h1",t:"DoubleTree Shuri \u00b7 Sep 3"},
 {id:"bk_h2",t:"Hilton Sea Hawk \u00b7 Sep 4"},
 {id:"bk_h3",t:"sankara \u00b7 Sep 5\u20139"},
@@ -693,7 +695,7 @@ function dayText(d){
   s+="\n";
   for(const ev of d.events){
     const t=(ev.time||"").replace("\n","\u2013");
-    s+=`[${t}] ${ev.title}${ev.jp?"  "+ev.jp:""}\n`;
+    s+=`[${t}] ${ev.title}${ev.flno?"  ("+ev.flno+")":""}${ev.jp?"  "+ev.jp:""}\n`;
     s+=`    ${ev.loc}${ev.trans&&ev.trans!=="\u2014"?"  \u00b7  "+ev.trans:""}\n`;
     if(ev.note) s+=`    ${ev.note}\n`;
     if(ev.flag) s+=`    [!] ${ev.flag}\n`;
@@ -778,6 +780,7 @@ function evHTML(d,ev){
       <div class="meta">
         <a class="chip map" target="_blank" rel="noopener" href="${M(ev.mapq||ev.loc)}">${pin}${esc(ev.loc)}</a>
         ${ev.site?`<a class="chip site" target="_blank" rel="noopener" href="${ev.site}">${GLOBE}Official</a>`:""}
+        ${ev.flno?`<span class="chip fl">✈ ${esc(ev.flno)}</span>`:""}
         ${ev.trans&&ev.trans!=="—"?`<span class="chip trans">${esc(ev.trans)}</span>`:""}
         ${ev.flag?`<span class="chip flag">⚑ ${flags[ev.flag]||ev.flag}</span>`:""}
         ${ev.ideas?`<button class="chip" data-ideas="${ev.ideas}">Ideas ›</button>`:""}
@@ -1017,12 +1020,13 @@ function renderInfo(){
     <div class="meta"><a class="chip map" target="_blank" rel="noopener" href="${M(h.mapq)}">${pin}Map</a>${h.site?`<a class="chip site" target="_blank" rel="noopener" href="${h.site}">${GLOBE}Official</a>`:""}<a class="chip" href="tel:${h.tel}">☎ ${h.tel}</a></div></div>`).join("")}
   <h3 class="sec">Flights & car</h3>
   <div class="card">
-    <div class="d">Sep 4 — Naha → Fukuoka, arrive ≈ 12:10 (confirm)</div>
-    <div class="d">Sep 5 — Fukuoka → Yakushima, 13:50 → 15:00 (confirm)</div>
-    <div class="d">Sep 9 — Yakushima → Fukuoka, dep ≈ 16:45 (confirm)</div>
-    <div class="d">Sep 10 — Fukuoka → Naha, 15:55 → 17:35</div>
+    <div class="d"><b>JTA052</b> · Sep 4 — Naha 10:25 → Fukuoka 12:10</div>
+    <div class="d"><b>JAL3673</b> · Sep 5 — Fukuoka 13:50 → Yakushima 15:00</div>
+    <div class="d"><b>JAL3676</b> · Sep 9 — Yakushima 15:30 → Fukuoka 16:45</div>
+    <div class="d"><b>JTA061</b> · Sep 10 — Fukuoka 15:55 → Naha 17:35</div>
+    <div class="d" style="margin-top:6px">Times checked against the JAL/JTA timetable — reconfirm at online check-in.</div>
     <div class="d" style="margin-top:6px">Rental car on Yakushima: Sep 6 (9–15), Sep 7 (10–15), Sep 8 (10–16)</div>
-    <div class="d">Own car: at Toyota Naha Sep 3 → pick up Sep 11, 13:00</div>
+    <div class="d">Own car: drive from 13:30 Sep 3, to Toyota Naha 16:00 → pick up Sep 11, 13:00</div>
   </div>
   <h3 class="sec">Checklist <span class="jp2" style="font-weight:400">(shared)</span></h3>
   <div class="card" id="checklist">
