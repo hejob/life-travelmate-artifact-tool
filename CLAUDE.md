@@ -25,6 +25,16 @@ Publish warnings on Lite about `use("db")`/`use("sample")` being undeclared are 
 - English + Japanese place names everywhere; keep both when adding content.
 - Facts marked "confirm" in the plan (flight times) are user-provided estimates; verify transport/hours claims via web search before hardcoding them (as done for the Hilton Sea Hawk shuttle).
 
+## The "Happening now" card
+
+`nowCardHTML` answers "what am I meant to be doing", so a ticked item is out of
+the running: ticking the item in progress advances the card to the next one
+rather than leaving it stale. Items with no parsed `s` never appear. When
+everything timed is ticked it says so; when a slot has passed and its item is
+still unticked, the card carries a "Not ticked yet" line so a slipped plan does
+not just vanish. `scripts/test/nowcard.js` drives it with `page.clock` at a
+fixed JST time.
+
 ## Data bundles
 
 Every export is the same shape, so any file can go into any Import box and only

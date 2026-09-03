@@ -80,6 +80,9 @@ header{padding:14px 0 8px}
 .nowcard .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--moss);font-weight:700}
 .nowcard .t{font-weight:600;margin-top:2px}
 .nowcard .m{font-size:13px;color:var(--ink2);margin-top:1px}
+.nowcard .m.late{color:var(--amber);margin-top:6px;font-weight:600}
+.nowcard.alldone{background:var(--surface);border-color:var(--line)}
+.nowcard.alldone .k{color:var(--ink2)}
 
 /* maps */
 .map-wrap{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:10px 0 4px;background:var(--sea)}
@@ -1078,21 +1081,40 @@ function evStatus(d,ev){
   if(ev.s!=null&&ev.s<=now&&(ev.e==null||now<ev.e)) return "now";
   return "";
 }
+/* The card answers "what am I meant to be doing" — so a ticked item is out of
+   the running, and ticking the one in progress moves it on to the next thing
+   rather than leaving the card stale. */
+function nowCardHTML(d){
+  if(d.iso!==jstISO()) return "";
+  const now=jstMin();
+  const open=ev=>!checks[ev.id]&&ev.s!=null;
+  const cur=d.events.find(ev=>open(ev)&&ev.s<=now&&ev.e!=null&&now<ev.e);
+  const nxt=d.events.find(ev=>open(ev)&&ev.s>now);
+  const late=d.events.filter(ev=>open(ev)&&ev.e!=null&&ev.e<=now);
+  const timed=d.events.filter(ev=>ev.s!=null);
+  const when=ev=>(ev.time||"").split("\n")[0];
+  const lateLine=late.length
+    ? `<div class="m late">⚑ Not ticked yet: ${esc(late[0].title)}${when(late[0])?" ("+esc(when(late[0]))+")":""}${late.length>1?` · +${late.length-1} more`:""}</div>`
+    : "";
+  const pick=cur||nxt;
+  if(!pick){
+    if(!timed.length) return "";
+    if(late.length) return `<div class="nowcard"><div class="k">Nothing left on the clock</div><div class="t">The rest of today is yours</div>${lateLine}</div>`;
+    return `<div class="nowcard alldone"><div class="k">Today</div><div class="t">All ticked off ✓</div><div class="m">Nothing else scheduled for Sep ${d.n}.</div></div>`;
+  }
+  const mins=pick.s-now, h=Math.floor(mins/60), m=mins%60;
+  const lead=cur?"Happening now":`Up next${mins>0?` · in ${h>0?h+" h ":""}${m} min`:""}`;
+  return `<div class="nowcard">
+    <div class="k">${lead}</div>
+    <div class="t">${esc(pick.title)} <span class="jp">${esc(pick.jp||"")}</span></div>
+    <div class="m">${esc((pick.time||"").replace("\n"," – "))}${pick.loc?" · "+esc(pick.loc):""}${pick.trans&&pick.trans!=="—"?" · "+esc(pick.trans):""}</div>
+    ${lateLine}
+  </div>`;
+}
 function dayMaps(d){ return (d.maps||[]).map(mapSVG).join("")+((d.maps&&d.maps.length)?MAP_CAP:""); }
 function renderPlan(){
   const d=dayFor(curDay)||effDay(DAYS[0]);
-  const today=jstISO(), now=jstMin();
-  let nowCard="";
-  if(d.iso===today){
-    const cur=d.events.find(ev=>ev.s!=null&&ev.s<=now&&ev.e!=null&&now<ev.e);
-    const nxt=d.events.find(ev=>ev.s!=null&&ev.s>now);
-    const pick=cur||nxt;
-    if(pick){
-      const h=Math.floor((pick.s-now)/60), m=(pick.s-now)%60;
-      const lead=cur?"Happening now":"Up next"+(pick.s>now?` · in ${h>0?h+" h ":""}${m} min`:"");
-      nowCard=`<div class="nowcard"><div class="k">${lead}</div><div class="t">${esc(pick.title)} <span class="jp">${esc(pick.jp||"")}</span></div><div class="m">${esc(pick.time.replace("\n"," – "))} · ${esc(pick.loc)}${pick.trans&&pick.trans!=="—"?" · "+esc(pick.trans):""}</div></div>`;
-    }
-  }
+  const nowCard=nowCardHTML(d);
   /* A brand-new item has no time yet, so it would sort to the end of the day —
      out of sight below the fold, and the artifact frame cannot scroll itself
      (the page around it does). So its form opens at the top, right under the
