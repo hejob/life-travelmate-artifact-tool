@@ -727,6 +727,15 @@ const NOTE_TAGS=[["memo","Memo"],["todo","To-do"],["buy","Buy"],["idea","Idea"],
    as it was a moment ago. Taking that at face value would wipe the item you
    just added — so a local schedule edit stays authoritative until the round
    trip has had time to land, and always while a form is open. */
+/* Snapshots and their data() are frozen, and an unchanged document is handed
+   back as the SAME object every delivery. Assigning one straight into state the
+   app later mutates throws "object is not extensible" under "use strict" — which
+   aborts whatever handler touched it, so a tick, an edit or "+ Add item" simply
+   did nothing. Everything that arrives from the store is copied first. */
+function thawed(v,fallback){
+  try{ const c=JSON.parse(JSON.stringify(v)); return (c&&typeof c==="object")?c:fallback; }
+  catch(e){ return fallback; }
+}
 let planDirty=0, writeFailed=false;
 const PLAN_SETTLE=6000;
 function planHoldsLocal(){ return editingEv!=null || Date.now()-planDirty<PLAN_SETTLE; }
@@ -1516,11 +1525,11 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
       sharedRef.onSnapshot(snap=>{
         if(snap.exists){
           const dd=snap.data();
-          checks=dd.checks||{};
-          if(dd.bookings) bookings=dd.bookings;
+          checks=thawed(dd.checks,{});
+          if(dd.bookings) bookings=thawed(dd.bookings,{});
           if(!planHoldsLocal()){
-            if(typeof dd.planJson==="string"){ try{ plan=JSON.parse(dd.planJson)||{}; }catch(e){} }
-            else if(dd.plan) plan=dd.plan;      /* documents written before planJson */
+            if(typeof dd.planJson==="string") plan=thawed(JSON.parse(dd.planJson||"{}"),{});
+            else if(dd.plan) plan=thawed(dd.plan,{});   /* documents written before planJson */
           }
         }
         syncLabel();
@@ -1528,7 +1537,7 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
       },()=>{ sharedRef=null; syncLabel(); });
       notesCol=db.collection("notes");
       notesCol.orderBy("ts","desc").limit(200).onSnapshot(snap=>{
-        notes=snap.docs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()}));
+        notes=snap.docs.filter(x=>x.exists).map(x=>thawed({id:x.id,...x.data()},{id:x.id}));
         if(curTab==="notes")renderNotes();
       },()=>{});
     }).catch(()=>{});

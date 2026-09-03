@@ -55,6 +55,14 @@ yet, so it sorts to the end of the day; its form therefore opens at the top of
 the list next to "+ Add item" (`newEv`), and the item drops into its slot on
 save. Cancelling, switching day or leaving edit mode discards the empty stub.
 
+**Snapshots from `db` are frozen, and an unchanged document comes back as the
+same object every delivery.** Assigning one into state the app later mutates
+(`checks`, `bookings`, `plan`) throws "object is not extensible" under
+`"use strict"`, which aborts the handler that touched it — a tick, a save or
+"+ Add item" then does nothing at all, with no visible error. Everything read
+out of the store goes through `thawed()` first. Lite has no `db`, so this class
+of bug is invisible there: test it with `scripts/test/frozen.js`.
+
 `shareWrite` must never throw and must never gate the UI. `sharedRef.set()`
 can fail *synchronously* — a backend that dislikes the document shape throws
 rather than rejecting — and an escaping exception abandons the rest of the

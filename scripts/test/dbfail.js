@@ -23,7 +23,7 @@ for(const mode of ['throws-sync','rejects-async']){
           if(m==='throws-sync') throw new TypeError('Nested arrays are not supported');
           return Promise.reject(new Error('invalid-argument'));
         },
-        onSnapshot:f=>{ ls.push(f); setTimeout(()=>f({exists:true,data:()=>JSON.parse(JSON.stringify(doc))}),5); return ()=>{}; }
+        onSnapshot:f=>{ ls.push(f); setTimeout(()=>f({exists:true,data:()=>Object.freeze(JSON.parse(JSON.stringify(doc)))}),5); return ()=>{}; }
       }),
       collection:()=>({doc:()=>({set:()=>Promise.resolve(),delete:()=>Promise.resolve()}),
         orderBy:()=>({limit:()=>({onSnapshot:()=>()=>{}})})})

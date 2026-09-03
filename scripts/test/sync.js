@@ -17,8 +17,9 @@ const ok=(n,v)=>console.log(`  ${v?'✓':'✗'} ${n}`);
 
 // a shared doc that answers every write with the document as it was before it
 await p.addInitScript(()=>{
+  const deepFreeze=o=>{ if(o&&typeof o==='object'){ Object.values(o).forEach(deepFreeze); Object.freeze(o);} return o; };
   const ls=[]; let doc={checks:{},bookings:{},plan:{}};
-  const clone=o=>JSON.parse(JSON.stringify(o));
+  const clone=o=>deepFreeze(JSON.parse(JSON.stringify(o)));
   const emit=d=>ls.forEach(f=>f({exists:true,data:()=>clone(d)}));
   window.claude={use:n=>Promise.resolve(n==='db'?{
     doc:()=>({
