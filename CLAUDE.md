@@ -35,6 +35,18 @@ still unticked, the card carries a "Not ticked yet" line so a slipped plan does
 not just vanish. `scripts/test/nowcard.js` drives it with `page.clock` at a
 fixed JST time.
 
+## Ask (chat) layout
+
+The transcript is its own bounded scroller and the page must not grow or scroll
+as an answer streams. Growing the page drags the fixed bottom nav out from
+under the reader, and in a frame sized to its content there is nowhere to
+scroll back to — the app looks frozen until a reload. So: never
+`scrollIntoView` a chat bubble; use `chatToBottom()`, and only when
+`chatAtBottom()` says the reader is already following. Stream updates are
+coalesced to one DOM write per frame and the transcript is capped at 40
+messages. `scripts/test/ask.js` asserts `window.scrollY` stays 0 and the
+document height does not change between answers.
+
 ## Data bundles
 
 Every export is the same shape, so any file can go into any Import box and only

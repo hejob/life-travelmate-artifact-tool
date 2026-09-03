@@ -16,6 +16,7 @@ raw file lays it out at ~980px and every mobile measurement comes out wrong.
     node scripts/test/frozen.js     # snapshots are frozen; state taken from them must be copied
     node scripts/test/data.js       # bundle export/import, merge vs replace, share
     node scripts/test/nowcard.js    # "Happening now" reacts to ticking (fixed clock)
+    node scripts/test/ask.js        # streaming must not scroll or grow the page
 
 `CHROME_BIN` defaults to the cached Playwright Chromium; override it if your
 cache lives elsewhere.

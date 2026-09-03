@@ -156,7 +156,13 @@ h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
 .idea .note{font-size:13px;color:var(--ink2);margin-top:2px}
 
 /* ask */
-.chat{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+/* The transcript is its own scroller. Growing the PAGE with every token drags
+   the whole layout — including the fixed bottom nav — out from under the
+   reader, and in a frame that is sized to its content there is nowhere to
+   scroll back to. min() so it stays sane whichever way the frame is sized. */
+.chat{display:flex;flex-direction:column;gap:10px;margin:14px 0;
+  max-height:min(58vh,460px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.chat:empty{display:none}
 .msg{max-width:88%;border-radius:14px;padding:10px 14px;font-size:15px;white-space:pre-wrap;overflow-wrap:break-word}
 .msg.user{align-self:flex-end;background:var(--moss);color:var(--on-accent);border-bottom-right-radius:4px}
 .msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
@@ -1352,8 +1358,11 @@ function askRules(){
 }
 function renderSuggest(){
   if(LITE){$("askOff").hidden=false;$("askDays").innerHTML="";$("suggest").innerHTML="";return;}
-  $("askDays").innerHTML=`<div class="lbl">Day recommendations</div>`+
+  $("askDays").innerHTML=(askTurns.length?`<button class="fchip" id="askClear">✕ Clear chat</button>`:"")+
+    `<div class="lbl">Day recommendations</div>`+
     DAYS.map(d=>`<button class="fchip" data-d="${d.n}">9/${d.n}</button>`).join("");
+  const clr=$("askClear");
+  if(clr) clr.onclick=()=>{ if(askBusy&&askCtl) askCtl.abort(); askTurns=[]; $("chat").innerHTML=""; renderSuggest(); };
   $("askDays").querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{
     const d=DAYS.find(x=>x.n===b.dataset.d);
     sendAskText(`Give recommendations for Sep ${d.n} (${d.title}). Focus on the unplanned/free time and pending decisions in that day's schedule; suggest 3–5 concrete options with times that fit around the fixed items and short travel from where we are that day. Include Japanese names.`);
@@ -1362,12 +1371,32 @@ function renderSuggest(){
   $("suggest").innerHTML=askTurns.length?"":sug.map(t=>`<button class="fchip" data-s="${esc(t)}">${esc(t)}</button>`).join("");
   $("suggest").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{sendAskText(b.dataset.s);});
 }
+function chatToBottom(){ const c=$("chat"); c.scrollTop=c.scrollHeight; }
+function chatAtBottom(){ const c=$("chat"); return c.scrollHeight-c.scrollTop-c.clientHeight<80; }
 function addMsg(cls,text){
   const el=document.createElement("div");
   el.className="msg "+cls; el.textContent=text;
-  $("chat").appendChild(el);
-  el.scrollIntoView({block:"end",behavior:"auto"});
+  const c=$("chat");
+  c.appendChild(el);
+  while(c.children.length>40) c.removeChild(c.firstChild);
+  chatToBottom();
   return el;
+}
+/* One DOM write per frame instead of one per token, and the transcript only
+   follows the answer while the reader is already at the bottom of it. */
+function streamInto(bubble){
+  let pending=null, raf=0;
+  return t=>{
+    pending=t;
+    if(raf) return;
+    raf=requestAnimationFrame(()=>{
+      raf=0;
+      const stick=chatAtBottom();
+      bubble.classList.remove("thinking");
+      if(bubble.textContent!==pending) bubble.textContent=pending;
+      if(stick) chatToBottom();
+    });
+  };
 }
 function sendAsk(){
   if(askBusy){ askCtl&&askCtl.abort(); return; }
@@ -1386,10 +1415,11 @@ async function sendAskText(q){
   askBusy=true; $("askGo").textContent="Stop"; $("askGo").classList.add("stop");
   renderSuggest();
   askCtl=new AbortController();
+  const push=streamInto(bubble);
   try{
     const {text}=await sampleFn([{role:"user",content:askRules()},...askTurns],{
       cache:false, signal:askCtl.signal,
-      onText:({text})=>{bubble.classList.remove("thinking");bubble.textContent=text;bubble.scrollIntoView({block:"end"});}
+      onText:({text})=>push(text)
     });
     bubble.classList.remove("thinking"); bubble.textContent=text;
     askTurns.push({role:"assistant",content:text});
@@ -1410,7 +1440,7 @@ async function sendAskText(q){
   }finally{
     askBusy=false; askCtl=null;
     $("askGo").textContent="Ask"; $("askGo").classList.remove("stop");
-    bubble.scrollIntoView({block:"end"});
+    chatToBottom(); renderSuggest();
   }
 }
 
