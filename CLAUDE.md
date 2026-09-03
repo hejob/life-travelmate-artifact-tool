@@ -55,6 +55,15 @@ yet, so it sorts to the end of the day; its form therefore opens at the top of
 the list next to "+ Add item" (`newEv`), and the item drops into its slot on
 save. Cancelling, switching day or leaving edit mode discards the empty stub.
 
+`shareWrite` must never throw and must never gate the UI. `sharedRef.set()`
+can fail *synchronously* — a backend that dislikes the document shape throws
+rather than rejecting — and an escaping exception abandons the rest of the
+caller, which is what made "+ Add item" look dead in the Full build while Lite
+(no `db`) was fine. Render first, persist after; write the device copy
+unconditionally; report a refused write in the sync label instead of showing
+"synced". The schedule is stored as `planJson` (a string) so the document stays
+a flat map of scalars; `plan` is still read for documents written earlier.
+
 A write to `trip/shared` comes back as a snapshot, and that echo can still carry
 the pre-write document. Applying it blindly wipes the edit that was just made —
 this is what made "+ Add item" look dead. `planHoldsLocal()` keeps local

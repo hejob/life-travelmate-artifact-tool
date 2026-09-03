@@ -727,13 +727,30 @@ const NOTE_TAGS=[["memo","Memo"],["todo","To-do"],["buy","Buy"],["idea","Idea"],
    as it was a moment ago. Taking that at face value would wipe the item you
    just added — so a local schedule edit stays authoritative until the round
    trip has had time to land, and always while a form is open. */
-let planDirty=0;
+let planDirty=0, writeFailed=false;
 const PLAN_SETTLE=6000;
 function planHoldsLocal(){ return editingEv!=null || Date.now()-planDirty<PLAN_SETTLE; }
+function syncLabel(){
+  $("sync").classList.toggle("on",!!sharedRef&&!writeFailed);
+  $("syncTxt").textContent=writeFailed?"not saved":(sharedRef?"synced":(LITE?"this device":"local"));
+}
 function shareWrite(){
   planDirty=Date.now();
-  if(sharedRef){ sharedRef.set({checks:{...checks},bookings:{...bookings},plan:{...plan}}).catch(()=>{}); }
-  else{ lsSet("checks",checks); lsSet("bookings",bookings); lsSet("plan",plan); }
+  /* The device copy is written first and unconditionally: an edit must survive
+     even when the shared write is refused. */
+  lsSet("checks",checks); lsSet("bookings",bookings); lsSet("plan",plan);
+  if(!sharedRef) return;
+  /* set() can throw synchronously, not just reject — a backend that dislikes
+     the document shape does exactly that, and an escaping exception would
+     abandon the rest of the caller (this is what made "+ Add item" look dead).
+     The schedule goes over as a JSON string so the document stays a flat map
+     of scalars whatever the backend allows. */
+  try{
+    const p=sharedRef.set({checks:{...checks},bookings:{...bookings},planJson:JSON.stringify(plan)});
+    if(p&&typeof p.then==="function") p.then(()=>{ if(writeFailed){writeFailed=false;syncLabel();} })
+      .catch(()=>{ writeFailed=true; syncLabel(); });
+    else if(writeFailed){ writeFailed=false; syncLabel(); }
+  }catch(e){ writeFailed=true; syncLabel(); }
 }
 
 /* ---------------- editable schedule ----------------
@@ -1067,7 +1084,8 @@ function evFormSave(){
     setTimeout(()=>{ if(savedNote){ savedNote=""; if(curTab==="plan") renderPlan(); } },5000);
   }
   plan[curDay]=sortEvents(evs);
-  editingEv=null; newEv=null; shareWrite(); renderPlan();
+  editingEv=null; newEv=null;
+  renderPlan(); shareWrite();
 }
 function bindEdit(d){
   const root=$("pane-plan");
@@ -1095,7 +1113,8 @@ function bindEdit(d){
     const evs=ensurePlan(curDay);
     const ev={id:newEvId(),time:"",title:"",loc:""};
     evs.push(ev); editingEv=ev.id; newEv=ev.id; savedNote="";
-    shareWrite(); renderPlan();          /* the day re-sorts when it is saved */
+    renderPlan();                        /* draw first — persistence can fail */
+    shareWrite();                        /* the day re-sorts when it is saved */
     const t=$("f_title"); if(t) t.focus();
   };
   const ex=$("dayExport");
@@ -1495,10 +1514,18 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
       db=d;
       sharedRef=db.doc("trip/shared");
       sharedRef.onSnapshot(snap=>{
-        if(snap.exists){ const dd=snap.data(); checks=dd.checks||{}; if(dd.bookings) bookings=dd.bookings; if(dd.plan&&!planHoldsLocal()) plan=dd.plan; }
-        $("sync").classList.add("on"); $("syncTxt").textContent="synced";
+        if(snap.exists){
+          const dd=snap.data();
+          checks=dd.checks||{};
+          if(dd.bookings) bookings=dd.bookings;
+          if(!planHoldsLocal()){
+            if(typeof dd.planJson==="string"){ try{ plan=JSON.parse(dd.planJson)||{}; }catch(e){} }
+            else if(dd.plan) plan=dd.plan;      /* documents written before planJson */
+          }
+        }
+        syncLabel();
         refreshChecksUI();
-      },()=>{ $("sync").classList.remove("on"); $("syncTxt").textContent="local"; });
+      },()=>{ sharedRef=null; syncLabel(); });
       notesCol=db.collection("notes");
       notesCol.orderBy("ts","desc").limit(200).onSnapshot(snap=>{
         notes=snap.docs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()}));

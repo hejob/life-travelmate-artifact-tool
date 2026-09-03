@@ -12,9 +12,14 @@ raw file lays it out at ~980px and every mobile measurement comes out wrong.
     node scripts/test/flows.js      # editor CRUD, JSON import/export, time order
     node scripts/test/sync.js       # shared-doc echo must not undo a local edit
     node scripts/test/addform.js    # "+ Add item" opens its form where you tapped
+    node scripts/test/dbfail.js     # a refused shared-doc write must not break the UI
 
 `CHROME_BIN` defaults to the cached Playwright Chromium; override it if your
 cache lives elsewhere.
+
+Only the Full build has `db`, so anything touching the shared document is
+invisible to Lite — `sync.js` and `dbfail.js` stub `window.claude.use` to cover
+that path.
 
 ## What audit.js enforces
 
