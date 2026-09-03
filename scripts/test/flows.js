@@ -62,14 +62,15 @@ ok('reset restores the built-in day', (await p.$$eval('.tl .ev',e=>e.length))===
 
 await p.click('#dayImport'); await p.waitForTimeout(250);
 ok('import sheet is editable', !(await p.$eval('#sheetText',e=>e.readOnly)));
-ok('Copy hidden while importing', await p.$eval('#sheetCopy',e=>e.hidden));
+ok('import shows Merge and Replace, not Copy',
+  JSON.stringify(await p.$$eval('#sheetActs .fchip',e=>e.map(x=>x.textContent)))==='["Merge","Replace"]');
 await p.fill('#sheetText',json);
-await p.click('#sheetAct'); await p.waitForTimeout(400);
+await p.$$eval('#sheetActs .fchip',e=>e[1].click()); await p.waitForTimeout(400);   // Replace
 ok('import restored the edited day', (await p.$$eval('.tl .ev .title',e=>e.map(x=>x.textContent))).some(t=>t.includes('Hirauchi sea onsen renamed')));
 
 // bad JSON is reported, not thrown
 await p.click('#dayImport'); await p.waitForTimeout(200);
-await p.fill('#sheetText','{oops'); await p.click('#sheetAct'); await p.waitForTimeout(250);
+await p.fill('#sheetText','{oops'); await p.click('#sheetActs .fchip'); await p.waitForTimeout(250);
 ok('bad JSON shows a hint and keeps the sheet open', (await p.$eval('#sheetHint',e=>e.textContent)).includes('valid JSON') && await p.$eval('#sheet',e=>e.classList.contains('on')));
 await p.click('#sheetClose');
 
@@ -124,7 +125,7 @@ const unsorted=JSON.stringify({days:{'2026-09-03':[
   {id:'z2',title:'Early',loc:'X',time:'07:00',s:420},
   {id:'z3',title:'Middle',loc:'X',time:'12:00',s:720}]}});
 await p.evaluate(()=>document.getElementById('dayImport').click()); await p.waitForTimeout(250);
-await p.fill('#sheetText',unsorted); await p.click('#sheetAct'); await p.waitForTimeout(400);
+await p.fill('#sheetText',unsorted); await p.$$eval('#sheetActs .fchip',e=>e[1].click()); await p.waitForTimeout(400);
 ok('unsorted import is ordered on the way in', JSON.stringify(await titles())===JSON.stringify(['Early','Middle','Late']));
 ok('order survives a reload', await (async()=>{await p.reload();await p.waitForTimeout(500);
   return JSON.stringify(await titles())===JSON.stringify(['Early','Middle','Late']);})());

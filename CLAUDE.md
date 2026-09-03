@@ -25,6 +25,22 @@ Publish warnings on Lite about `use("db")`/`use("sample")` being undeclared are 
 - English + Japanese place names everywhere; keep both when adding content.
 - Facts marked "confirm" in the plan (flight times) are user-provided estimates; verify transport/hours claims via web search before hardcoding them (as done for the Hilton Sea Hawk shuttle).
 
+## Data bundles
+
+Every export is the same shape, so any file can go into any Import box and only
+the parts it carries are touched:
+`{app, version, exported, days?, notes?, checks?, bookings?}`. v1 files (days
+only) still load. Import always asks **merge** (matching ids updated, nothing
+removed) or **replace** (that part swapped outright) — the only difference is
+what happens to items the file does not mention. Notes live in a collection, not
+the shared doc, so `notesApply` upserts per note and, on replace, deletes the
+ones the file omits.
+
+Sharing is Copy plus `navigator.share` when the frame is allowed it (feature
+detected, falls back to Copy). A real file download would need the `downloads`
+capability declared — not enabled, since re-declaring capabilities on the Full
+artifact risks its `db`/`sample` grants mid-trip.
+
 ## Mobile checks before publishing
 
 UI changes must be verified with the Playwright harness in `scripts/test/`

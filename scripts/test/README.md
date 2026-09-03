@@ -14,6 +14,7 @@ raw file lays it out at ~980px and every mobile measurement comes out wrong.
     node scripts/test/addform.js    # "+ Add item" opens its form where you tapped
     node scripts/test/dbfail.js     # a refused shared-doc write must not break the UI
     node scripts/test/frozen.js     # snapshots are frozen; state taken from them must be copied
+    node scripts/test/data.js       # bundle export/import, merge vs replace, share
 
 `CHROME_BIN` defaults to the cached Playwright Chromium; override it if your
 cache lives elsewhere.

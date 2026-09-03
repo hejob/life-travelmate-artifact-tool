@@ -273,6 +273,9 @@ h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
 .sheet .hd .sp{margin-left:auto}
 .sheet textarea{width:100%;height:min(32vh,240px);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 11px;font:16px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:none}
 .sheet .hint{font-size:12.5px;color:var(--ink2);margin-top:8px}
+.sheetacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.sheetacts .fchip.pri{background:var(--moss);color:var(--on-accent);border-color:var(--moss);font-weight:600}
+.sheetacts .fchip.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
 
 /* bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:40;padding-bottom:env(safe-area-inset-bottom)}
@@ -325,6 +328,10 @@ nav button.sel{color:var(--moss);font-weight:600}
     <div class="filters" id="noteFilters"></div>
     <div id="noteList"></div>
     <button class="fchip showdone" id="showDoneBtn"></button>
+    <div class="filters">
+      <button class="fchip" id="notesExport">⤓ Export notes</button>
+      <button class="fchip" id="notesImport">⤒ Import notes</button>
+    </div>
   </div>
   <div class="pane" id="pane-info"></div>
 </div>
@@ -340,12 +347,11 @@ nav button.sel{color:var(--moss);font-weight:600}
   <div class="hd">
     <strong id="sheetTitle"></strong>
     <span class="sp"></span>
-    <button class="fchip" id="sheetAct" hidden></button>
-    <button class="fchip" id="sheetCopy">Copy</button>
     <button class="fchip" id="sheetClose">Close</button>
   </div>
   <textarea id="sheetText" readonly spellcheck="false"></textarea>
   <div class="hint" id="sheetHint"></div>
+  <div class="sheetacts" id="sheetActs"></div>
 </div></div>
 
 <nav><div class="row">
@@ -820,39 +826,137 @@ function sanitizeEv(o){
   if(e.e!=null&&e.s==null) delete e.e;
   return e;
 }
+/* ---------------- data bundles ----------------
+   One shape for every export, so any file can be handed to any Import box and
+   only the parts it carries are touched:
+     { app, version, exported, days?: {iso:[item]}, notes?: [], checks?: {}, bookings?: {} }
+   v1 files (days only) still load. */
+const BUNDLE_VERSION=2;
+function bundleHead(){ return {app:"sankara-days",version:BUNDLE_VERSION,exported:jstStamp()}; }
+function notesOut(){
+  return notes.map(n=>({id:n.id,text:n.text,ts:n.ts,tag:n.tag||"memo",done:!!n.done}));
+}
 function planExport(iso){
-  const days={};
+  const b=bundleHead(), days={};
   if(iso){ const d=dayFor(iso); if(d) days[iso]=d.events; }
   else for(const d of allDays()) days[d.iso]=d.events;
-  return JSON.stringify({app:"sankara-days",version:1,exported:jstStamp(),days},null,1);
+  b.days=days;
+  return JSON.stringify(b,null,1);
 }
-function planImport(text,iso){
+function notesExport(){
+  const b=bundleHead(); b.notes=notesOut();
+  return JSON.stringify(b,null,1);
+}
+function allExport(){
+  const b=bundleHead();
+  b.days={}; for(const d of allDays()) b.days[d.iso]=d.events;
+  b.notes=notesOut();
+  b.checks={...checks};
+  b.bookings={...bookings};
+  return JSON.stringify(b,null,1);
+}
+function sanitizeNote(o){
+  if(!o||typeof o!=="object") return null;
+  const text=String(o.text==null?"":o.text).slice(0,500).trim();
+  if(!text) return null;
+  const tag=NOTE_TAGS.some(([k])=>k===o.tag)?o.tag:"memo";
+  const ts=(typeof o.ts==="number"&&isFinite(o.ts))?o.ts:Date.now();
+  const id=(o.id&&/^[A-Za-z0-9_.:@+-]{1,60}$/.test(String(o.id)))?String(o.id):("n"+ts+Math.random().toString(36).slice(2,6));
+  return {id,text,ts,tag,done:!!o.done};
+}
+function notesApply(list,mode){
+  const keep=mode==="merge"?notes.slice():[];
+  const byId=new Map(keep.map(n=>[n.id,n]));
+  for(const n of list){ byId.set(n.id,n); }
+  const next=[...byId.values()].sort((a,b)=>b.ts-a.ts);
+  if(notesCol){
+    if(mode!=="merge"){
+      const incoming=new Set(list.map(n=>n.id));
+      for(const n of notes) if(!incoming.has(n.id)) notesCol.doc(n.id).delete().catch(()=>{});
+    }
+    for(const n of list) notesCol.doc(n.id).set({text:n.text,ts:n.ts,tag:n.tag,done:n.done}).catch(()=>{});
+  }
+  notes=next;
+  lsSet("notes",notes);
+  return list.length;
+}
+/* `iso` limits the import to one date; `only` limits it to one part.
+   mode "merge" adds to what is there (matching ids are updated, nothing is
+   removed); mode "replace" swaps the affected parts wholesale. */
+function bundleImport(text,{iso=null,only=null,mode="merge"}={}){
   let j; try{ j=JSON.parse(text); }catch(err){ return "That isn't valid JSON."; }
-  let map={};
-  if(Array.isArray(j)){
-    if(!iso) return "This file is a bare list of items — import it from a day so it knows which date to replace.";
-    map[iso]=j;
-  }else if(j&&typeof j==="object"){
-    const src=(j.days&&typeof j.days==="object")?j.days:j;
-    for(const k of Object.keys(src)) if(/^\d{4}-\d{2}-\d{2}$/.test(k)&&Array.isArray(src[k])) map[k]=src[k];
-    if(iso){
-      const keys=Object.keys(map);
-      const arr=map[iso]||(keys.length===1?map[keys[0]]:null);
-      if(!arr) return "No items for "+iso+" in that file.";
-      map={}; map[iso]=arr;
+  const done=[];
+
+  /* ---- days ---- */
+  if(only==null||only==="days"){
+    let map={};
+    if(Array.isArray(j)){
+      if(!iso) return "This file is a bare list of items — import it from a day so it knows which date it belongs to.";
+      map[iso]=j;
+    }else if(j&&typeof j==="object"){
+      const src=(j.days&&typeof j.days==="object")?j.days:j;
+      for(const k of Object.keys(src)) if(/^\d{4}-\d{2}-\d{2}$/.test(k)&&Array.isArray(src[k])) map[k]=src[k];
+      if(iso){
+        const keys=Object.keys(map);
+        const arr=map[iso]||(keys.length===1?map[keys[0]]:null);
+        if(!arr&&only==="days") return "No items for "+iso+" in that file.";
+        map={}; if(arr) map[iso]=arr;
+      }
+    }
+    const known=new Set(DAYS.map(d=>d.iso));
+    let days=0, added=0, updated=0, skipped=0;
+    for(const k of Object.keys(map)){
+      if(!known.has(k)){ skipped++; continue; }
+      const incoming=map[k].map(sanitizeEv).filter(Boolean);
+      if(!incoming.length){ skipped++; continue; }
+      if(mode==="merge"){
+        const cur=ensurePlan(k).slice();
+        const byId=new Map(cur.map(e=>[e.id,e]));
+        for(const e of incoming){ if(byId.has(e.id)) updated++; else added++; byId.set(e.id,e); }
+        plan[k]=sortEvents([...byId.values()]);
+      }else{
+        added+=incoming.length;
+        plan[k]=sortEvents(incoming);
+      }
+      days++;
+    }
+    if(days) done.push(mode==="merge"
+      ? `${added} item${added===1?"":"s"} added, ${updated} updated across ${days} day${days===1?"":"s"}`
+      : `${days} day${days===1?"":"s"} replaced (${added} items)`);
+    if(skipped) done.push(`${skipped} skipped (not a date in this trip)`);
+  }
+
+  /* ---- notes ---- */
+  if((only==null||only==="notes")&&j&&!Array.isArray(j)&&Array.isArray(j.notes)){
+    const list=j.notes.map(sanitizeNote).filter(Boolean);
+    if(list.length){ notesApply(list,mode); done.push(`${list.length} note${list.length===1?"":"s"} ${mode==="merge"?"merged":"restored"}`); }
+  }else if(only==="notes"&&Array.isArray(j)){
+    const list=j.map(sanitizeNote).filter(Boolean);
+    if(list.length){ notesApply(list,mode); done.push(`${list.length} note${list.length===1?"":"s"} ${mode==="merge"?"merged":"restored"}`); }
+  }
+
+  /* ---- ticks and bookings ---- */
+  if(only==null&&j&&!Array.isArray(j)){
+    if(j.checks&&typeof j.checks==="object"){
+      if(mode==="replace") checks={};
+      let c=0;
+      for(const k of Object.keys(j.checks)) if(j.checks[k]){ checks[k]=true; c++; }
+      if(c) done.push(`${c} tick${c===1?"":"s"} ${mode==="merge"?"merged":"restored"}`);
+    }
+    if(j.bookings&&typeof j.bookings==="object"){
+      if(mode==="replace") bookings={};
+      let n=0;
+      for(const k of Object.keys(j.bookings)){
+        const v=String(j.bookings[k]??"").slice(0,200).trim();
+        if(v){ bookings[k]=v; n++; }
+      }
+      if(n) done.push(`${n} booking${n===1?"":"s"} ${mode==="merge"?"merged":"restored"}`);
     }
   }
-  const known=new Set(DAYS.map(d=>d.iso));
-  let n=0, skipped=0;
-  for(const k of Object.keys(map)){
-    if(!known.has(k)){ skipped++; continue; }
-    const evs=map[k].map(sanitizeEv).filter(Boolean);
-    if(!evs.length){ skipped++; continue; }
-    plan[k]=sortEvents(evs); n++;
-  }
-  if(!n) return "Nothing imported — no usable items for dates in this trip.";
+
+  if(!done.length) return "Nothing to import — that file had no data this app recognises.";
   shareWrite();
-  return {ok:n,skipped};
+  return {summary:done.join(" · ")};
 }
 
 /* ---------------- sun + tide ---------------- */
@@ -918,16 +1022,35 @@ function tripText(){
   s+=CHECKLIST.map(c=>`[${checks[c.id]?"x":" "}] ${c.t}`).join("\n")+"\n";
   return s;
 }
+async function copySheet(){
+  const ta=$("sheetText"); let ok=false;
+  try{ await navigator.clipboard.writeText(ta.value); ok=true; }catch(e){}
+  if(!ok){ try{ ta.focus(); ta.setSelectionRange(0,ta.value.length); ok=document.execCommand("copy"); }catch(e){} }
+  $("sheetHint").textContent=ok
+    ? "Copied \u2014 paste it into Notes, LINE, or the other phone\u2019s Import box."
+    : "Copy is blocked here: long-press the text \u2192 Select All \u2192 Copy.";
+}
+async function shareSheet(){
+  /* the native share sheet reaches LINE / Messages / AirDrop directly, but the
+     artifact frame may not be allowed to open it \u2014 fall back to copying */
+  try{ await navigator.share({title:"Sankara Days",text:$("sheetText").value}); }
+  catch(e){ if(e&&e.name==="AbortError") return; copySheet(); }
+}
 function openSheet(title,text,hint,opt){
   opt=opt||{};
   $("sheetTitle").textContent=title;
   const ta=$("sheetText");
   ta.value=text; ta.readOnly=!opt.editable;
   $("sheetHint").textContent=hint||"Copy this into your phone\u2019s Notes or LINE \u2014 it stays readable with no signal.";
-  $("sheetCopy").hidden=!!opt.editable;
-  const act=$("sheetAct");
-  if(opt.action){ act.hidden=false; act.textContent=opt.action.label; act.onclick=opt.action.fn; }
-  else { act.hidden=true; act.onclick=null; }
+  const acts=[];
+  if(!opt.editable){
+    if(navigator.share) acts.push({label:"\u21ea Share\u2026",fn:shareSheet});
+    acts.push({label:"Copy",fn:copySheet,pri:!navigator.share});
+  }
+  for(const a of (opt.actions||[])) acts.push(a);
+  const bar=$("sheetActs");
+  bar.innerHTML=acts.map((a,i)=>`<button class="fchip${a.pri?" pri":""}${a.warn?" warn":""}" data-sa="${i}">${esc(a.label)}</button>`).join("");
+  bar.querySelectorAll("[data-sa]").forEach(b=>b.onclick=()=>acts[+b.dataset.sa].fn());
   $("sheet").classList.add("on");
   ta.scrollTop=0;
   if(opt.editable) ta.focus();
@@ -1130,24 +1253,33 @@ function bindEdit(d){
   if(ex) ex.onclick=()=>openSheet(`Sep ${d.n} — JSON`,planExport(d.iso),
     "One day's items. Copy it out as a backup, or paste it back through Import to restore this day.");
   const im=$("dayImport");
-  if(im) im.onclick=()=>openImport(d.iso,`Import into Sep ${d.n}`);
+  if(im) im.onclick=()=>openImport({iso:d.iso,only:"days",title:`Import into Sep ${d.n}`});
   const rs=$("dayReset");
   if(rs) rs.onclick=()=>{
     if(pendingReset!==d.iso){ pendingReset=d.iso; renderPlan(); return; }
     delete plan[d.iso]; pendingReset=null; shareWrite(); renderPlan();
   };
 }
-function openImport(iso,title){
+function openImport(opt){
+  const {iso=null,only=null,title="Import"}=opt||{};
+  const what=only==="notes"?"notes":(iso?`Sep ${(DAYS.find(d=>d.iso===iso)||{}).n}`:"the trip");
+  const run=mode=>()=>{
+    const r=bundleImport($("sheetText").value,{iso,only,mode});
+    if(typeof r==="string"){ $("sheetHint").textContent="⚠ "+r; return; }
+    $("sheet").classList.remove("on");
+    editingEv=null; newEv=null; pendingDel=null;
+    savedNote="✓ Imported — "+r.summary;
+    setTimeout(()=>{ if(savedNote){ savedNote=""; if(curTab==="plan"&&editMode) renderPlan(); } },6000);
+    if(curTab==="plan") renderPlan();
+    else if(curTab==="notes") renderNotes();
+    else renderInfo();
+  };
   openSheet(title,"",
-    iso?`Paste JSON exported from this app. It replaces every item on ${iso}.`
-       :"Paste JSON exported from this app. Every date it contains is replaced; dates outside the trip are ignored.",
-    {editable:true,action:{label:"Import",fn:()=>{
-      const r=planImport($("sheetText").value,iso);
-      if(typeof r==="string"){ $("sheetHint").textContent="⚠ "+r; return; }
-      $("sheet").classList.remove("on");
-      editingEv=null; pendingDel=null;
-      if(curTab==="plan") renderPlan(); else renderInfo();
-    }}});
+    `Paste JSON exported from this app. Merge keeps what is already in ${what} and adds or updates from the file; Replace swaps it for the file's version.`,
+    {editable:true,actions:[
+      {label:"Merge",fn:run("merge"),pri:true},
+      {label:"Replace",fn:run("replace"),warn:true}
+    ]});
 }
 function bindEvents(root){
   root.querySelectorAll("[data-tick]").forEach(b=>b.onclick=()=>toggleCheck(b.dataset.tick));
@@ -1393,13 +1525,14 @@ function renderInfo(){
   </div>
   <h3 class="sec">Useful links</h3>
   <div class="card">${LINKS.map(l=>`<div class="linkrow"><a target="_blank" rel="noopener" href="${l.u}">${esc(l.t)}</a></div>`).join("")}</div>
-  <h3 class="sec">Schedule data</h3>
+  <h3 class="sec">Trip data</h3>
   <div class="filters" style="margin-top:0">
-    <button class="fchip" id="planExportAll">⤓ Export all days (JSON)</button>
-    <button class="fchip" id="planImportAll">⤒ Import days (JSON)</button>
-    ${Object.keys(plan).length?`<button class="fchip warn" id="planResetAll">${pendingReset==="ALL"?"Reset everything — tap again":"↺ Reset all edits ("+Object.keys(plan).length+")"}</button>`:""}
+    <button class="fchip" id="exportAll">⤓ Export everything</button>
+    <button class="fchip" id="planExportAll">⤓ Schedule only</button>
+    <button class="fchip" id="planImportAll">⤒ Import…</button>
+    ${Object.keys(plan).length?`<button class="fchip warn" id="planResetAll">${pendingReset==="ALL"?"Reset everything — tap again":"↺ Reset schedule edits ("+Object.keys(plan).length+")"}</button>`:""}
   </div>
-  <div class="backup-note">Edit a day from Plan › ✎ Edit day — add, change, delete and drag items into order. Edited days replace the built-in plan and sync between both phones; Reset puts a day back. Export gives you a JSON backup you can paste into Import later, for one day or all of them.</div>
+  <div class="backup-note">“Everything” is the edited schedule, all notes, the ticks and the bookings in one file. Import asks whether to <b>merge</b> it into what you already have or <b>replace</b> that part outright — merge is the safe one, and the only difference is what happens to items the file doesn’t mention. Edit a day from Plan › ✎ Edit day; Reset puts the built-in schedule back.</div>
   <h3 class="sec">Offline backup</h3>
   <div class="filters" style="margin-top:0">
     <button class="fchip" id="copyTrip">⤓ Copy whole trip as text</button>
@@ -1420,9 +1553,11 @@ function renderInfo(){
       box.addEventListener("blur",()=>{ if(editingBk) bkSave(); });
     }
   });
-  $("planExportAll").onclick=()=>openSheet("Whole schedule — JSON",planExport(null),
-    "Every day's items. Keep it as a backup, or paste it back through Import to restore the trip.");
-  $("planImportAll").onclick=()=>openImport(null,"Import days");
+  $("exportAll").onclick=()=>openSheet("Whole trip — JSON",allExport(),
+    "Schedule, notes, ticks and bookings. This is the one to send to the other phone, or to keep as the backup.");
+  $("planExportAll").onclick=()=>openSheet("Schedule — JSON",planExport(null),
+    "Every day's items, without notes or ticks.");
+  $("planImportAll").onclick=()=>openImport({title:"Import trip data"});
   const rsa=$("planResetAll");
   if(rsa) rsa.onclick=()=>{
     if(pendingReset!=="ALL"){ pendingReset="ALL"; renderInfo(); return; }
@@ -1466,15 +1601,10 @@ $("noteAdd").onclick=addNote;
 $("noteInput").addEventListener("keydown",e=>{if(e.key==="Enter")addNote();});
 $("noteTag").innerHTML=NOTE_TAGS.map(([k,l])=>`<option value="${k}">${l}</option>`).join("");
 $("showDoneBtn").onclick=()=>{showDone=!showDone;renderNotes();};
+$("notesExport").onclick=()=>openSheet("Notes — JSON",notesExport(),
+  "Every note, checked ones included. Send it to the other phone and import it there, or keep it as a backup.");
+$("notesImport").onclick=()=>openImport({only:"notes",title:"Import notes"});
 $("sheetClose").onclick=()=>$("sheet").classList.remove("on");
-$("sheetCopy").onclick=async()=>{
-  const ta=$("sheetText"); let ok=false;
-  try{ await navigator.clipboard.writeText(ta.value); ok=true; }catch(e){}
-  if(!ok){ try{ ta.focus(); ta.setSelectionRange(0,ta.value.length); ok=document.execCommand("copy"); }catch(e){} }
-  $("sheetHint").textContent=ok
-    ?"Copied — paste it into Notes or LINE now."
-    :"Copy is blocked here: long-press the text → Select All → Copy.";
-};
 $("askGo").onclick=sendAsk;
 $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendAsk();}});
 
