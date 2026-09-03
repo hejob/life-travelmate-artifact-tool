@@ -11,6 +11,7 @@ raw file lays it out at ~980px and every mobile measurement comes out wrong.
     node scripts/test/audit.js      # touch targets, contrast, fonts
     node scripts/test/flows.js      # editor CRUD, JSON import/export, time order
     node scripts/test/sync.js       # shared-doc echo must not undo a local edit
+    node scripts/test/addform.js    # "+ Add item" opens its form where you tapped
 
 `CHROME_BIN` defaults to the cached Playwright Chromium; override it if your
 cache lives elsewhere.

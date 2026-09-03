@@ -48,6 +48,13 @@ Items whose time is a word rather than a clock reading sort at the hour that
 word means (`TIME_WORDS`); anything unrecognised inherits the preceding item's
 slot so it stays where it was rather than jumping to the top.
 
+The artifact frame does not scroll itself — the page around it does — so
+`scrollIntoView` inside the app is a no-op in the viewer. Anything that has to
+be seen must be *rendered* where the user is looking. A new item has no time
+yet, so it sorts to the end of the day; its form therefore opens at the top of
+the list next to "+ Add item" (`newEv`), and the item drops into its slot on
+save. Cancelling, switching day or leaving edit mode discards the empty stub.
+
 A write to `trip/shared` comes back as a snapshot, and that echo can still carry
 the pre-write document. Applying it blindly wipes the edit that was just made —
 this is what made "+ Add item" look dead. `planHoldsLocal()` keeps local

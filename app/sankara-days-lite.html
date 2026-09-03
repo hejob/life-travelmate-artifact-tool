@@ -243,6 +243,7 @@ h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
 .editbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
 .editbar .fchip.on{background:var(--moss);color:#fff;border-color:var(--moss);font-weight:600}
 .fchip.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
+.savednote{margin:10px 0 0;padding:9px 12px;border-radius:11px;background:var(--moss-soft);border:1px solid var(--moss);color:var(--ink);font-size:13.5px}
 .edited{font-size:12.5px;color:var(--amber);margin-top:6px}
 @keyframes evflash{0%{background:var(--moss-soft);border-color:var(--moss)}100%{background:var(--surface);border-color:var(--line)}}
 .ev.flash{animation:evflash 1.4s ease-out}
@@ -718,7 +719,7 @@ let sampleFn=null, sampleDead=false;
 let curDay=null, curTab="plan", ideaArea="yakushima", ideaTag=null;
 let askTurns=[], askCtl=null, askBusy=false;
 let noteTagFilter=null, showDone=false, editingNote=null, editingBk=null;
-let editMode=false, editingEv=null, pendingDel=null, pendingReset=null, flashEv=null, scrollForm=false;
+let editMode=false, editingEv=null, pendingDel=null, pendingReset=null, flashEv=null, newEv=null, savedNote="";
 const NOTE_TAGS=[["memo","Memo"],["todo","To-do"],["buy","Buy"],["idea","Idea"],["later","Later"],["otherday","Other day"]];
 
 /* ---------------- shared doc (checks + bookings) ---------------- */
@@ -913,7 +914,7 @@ function buildStrip(){
     `<button class="daychip${d.iso===curDay?" sel":""}${d.iso===today?" today":""}" data-day="${d.iso}">
       <div class="n">${d.n}</div><div class="w">${d.dow}</div></button>`).join("");
   $("stripInner").querySelectorAll(".daychip").forEach(b=>b.onclick=()=>{
-    curDay=b.dataset.day; editingEv=null; pendingDel=null; pendingReset=null;
+    curDay=b.dataset.day; editingEv=null; newEv=null; pendingDel=null; pendingReset=null; savedNote="";
     setTab("plan"); buildStrip(); renderPlan();
   });
 }
@@ -943,6 +944,15 @@ function renderPlan(){
       nowCard=`<div class="nowcard"><div class="k">${lead}</div><div class="t">${esc(pick.title)} <span class="jp">${esc(pick.jp||"")}</span></div><div class="m">${esc(pick.time.replace("\n"," – "))} · ${esc(pick.loc)}${pick.trans&&pick.trans!=="—"?" · "+esc(pick.trans):""}</div></div>`;
     }
   }
+  /* A brand-new item has no time yet, so it would sort to the end of the day —
+     out of sight below the fold, and the artifact frame cannot scroll itself
+     (the page around it does). So its form opens at the top, right under the
+     button that was tapped, and the item drops into its slot when saved. */
+  let rows=d.events;
+  if(newEv&&editingEv===newEv){
+    const it=rows.find(e=>e.id===newEv);
+    if(it) rows=[it,...rows.filter(e=>e!==it)];
+  }
   $("pane-plan").innerHTML=`
     <div class="dayhead"><h2>Sep ${d.n} (${d.dow}) — ${esc(d.title)}</h2><div class="route">${esc(d.route)}</div>
       <div class="acts">
@@ -952,26 +962,23 @@ function renderPlan(){
       ${plan[d.iso]?`<div class="edited">✎ This day has been edited — the built-in plan is still there under Reset.</div>`:""}
     </div>
     ${editMode?editBar(d):""}
-    ${condStrip(d)}
+    ${editMode?"":condStrip(d)}
     ${editMode?"":nowCard}
     ${editMode?"":dayMaps(d)}
-    <div class="tl">${d.events.map(ev=>ev.id===editingEv?evForm(ev):evHTML(d,ev)).join("")}</div>`;
+    ${savedNote?`<div class="savednote">${esc(savedNote)}</div>`:""}
+    <div class="tl">${rows.map(ev=>ev.id===editingEv?evForm(ev):evHTML(d,ev)).join("")}</div>`;
   bindEvents($("pane-plan"));
-  if(scrollForm&&editingEv){
-    /* a new item sorts to wherever its time puts it — which can be off-screen,
-       and then the button looks like it did nothing */
-    scrollForm=false;
-    const f=$("pane-plan").querySelector(`[data-form="${editingEv}"]`);
-    if(f) f.scrollIntoView({block:"center",behavior:"smooth"});
-  }
   if(flashEv){
-    /* an edited item may have moved to a different hour — show where it landed */
     const row=$("pane-plan").querySelector(`[data-ev="${flashEv}"]`);
     flashEv=null;
-    if(row) row.scrollIntoView({block:"center",behavior:"smooth"});
+    if(row&&row.scrollIntoView) row.scrollIntoView({block:"center",behavior:"smooth"});
   }
   $("copyDay").onclick=()=>openSheet(`Sep ${d.n} — ${d.title}`,dayText(d));
-  $("editToggle").onclick=()=>{editMode=!editMode;editingEv=null;pendingDel=null;pendingReset=null;renderPlan();};
+  $("editToggle").onclick=()=>{
+    if(newEv&&editingEv===newEv) plan[curDay]=sortEvents(ensurePlan(curDay).filter(x=>x.id!==newEv));
+    editMode=!editMode; editingEv=null; newEv=null; pendingDel=null; pendingReset=null; savedNote="";
+    renderPlan();
+  };
   if(editMode) bindEdit(d);
 }
 function evHTML(d,ev){
@@ -1048,19 +1055,24 @@ function evFormSave(){
   if(i<0){ editingEv=null; renderPlan(); return; }
   const next=sanitizeEv({
     id:evs[i].id, ideas:evs[i].ideas, ask:evs[i].ask,
-    title:g("f_title")||"Untitled", jp:g("f_jp"), loc:g("f_loc")||"—",
+    title:g("f_title").trim()||"Untitled item", jp:g("f_jp"), loc:g("f_loc").trim()||"—",
     mapq:g("f_mapq")||g("f_loc"), note:g("f_note"), trans:g("f_trans"),
     flag:g("f_flag"), flno:g("f_flno"), site:g("f_site").trim(),
     ...evTiming(g("f_t1"),g("f_t2"))
   });
-  if(next){ evs[i]=next; flashEv=next.id; }
+  if(next){
+    evs[i]=next; flashEv=next.id;
+    const when=(next.time||"").replace("\n","–");
+    savedNote=`✓ Saved — “${next.title}” is in the day${when?" at "+when:" (no time set, so it stays where it is)"}.`;
+    setTimeout(()=>{ if(savedNote){ savedNote=""; if(curTab==="plan") renderPlan(); } },5000);
+  }
   plan[curDay]=sortEvents(evs);
-  editingEv=null; shareWrite(); renderPlan();
+  editingEv=null; newEv=null; shareWrite(); renderPlan();
 }
 function bindEdit(d){
   const root=$("pane-plan");
   root.querySelectorAll("[data-eedit]").forEach(b=>b.onclick=()=>{
-    editingEv=b.dataset.eedit; pendingDel=null; scrollForm=true; renderPlan();
+    editingEv=b.dataset.eedit; pendingDel=null; newEv=null; savedNote=""; renderPlan();
   });
   root.querySelectorAll("[data-edel]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.edel;
@@ -1071,14 +1083,20 @@ function bindEdit(d){
   });
   const sv=$("f_save"), cx=$("f_cancel");
   if(sv) sv.onclick=evFormSave;
-  if(cx) cx.onclick=()=>{editingEv=null;renderPlan();};
+  if(cx) cx.onclick=()=>{
+    if(newEv&&editingEv===newEv){                 /* discard the empty stub */
+      plan[curDay]=sortEvents(ensurePlan(curDay).filter(x=>x.id!==newEv));
+      newEv=null; shareWrite();
+    }
+    editingEv=null; renderPlan();
+  };
   const add=$("evAdd");
   if(add) add.onclick=()=>{
     const evs=ensurePlan(curDay);
-    const ev={id:newEvId(),time:"",title:"New item",loc:"—"};
-    evs.push(ev); editingEv=ev.id; scrollForm=true;
+    const ev={id:newEvId(),time:"",title:"",loc:""};
+    evs.push(ev); editingEv=ev.id; newEv=ev.id; savedNote="";
     shareWrite(); renderPlan();          /* the day re-sorts when it is saved */
-    const t=$("f_title"); if(t) t.select();
+    const t=$("f_title"); if(t) t.focus();
   };
   const ex=$("dayExport");
   if(ex) ex.onclick=()=>openSheet(`Sep ${d.n} — JSON`,planExport(d.iso),
