@@ -8,9 +8,9 @@ raw file lays it out at ~980px and every mobile measurement comes out wrong.
 
     npm i playwright            # once, anywhere on the machine
     node scripts/test/preview.js
-    node scripts/test/audit.js      # touch targets, contrast, fonts, drag
-    node scripts/test/flows.js      # editor CRUD, JSON import/export, notes
-    node scripts/test/dragtest.js   # reorder by drag, on two screen sizes
+    node scripts/test/audit.js      # touch targets, contrast, fonts
+    node scripts/test/flows.js      # editor CRUD, JSON import/export, time order
+    node scripts/test/sync.js       # shared-doc echo must not undo a local edit
 
 `CHROME_BIN` defaults to the cached Playwright Chromium; override it if your
 cache lives elsewhere.

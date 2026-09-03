@@ -89,46 +89,9 @@ for(const [name,dev,scheme] of [['iphone-se',devices['iPhone SE'],'light'],['iph
       if(a&&a.content&&a.content!=='none'&&a.position==='absolute'){const ah=parseFloat(a.height); if(ah>h)h=ah;}
       if(r.width<44||h<44) out.push(`${Math.round(r.width)}x${Math.round(h)} .${el.className}`);
     }
-    const h=document.querySelector('.handle'), cs=h&&getComputedStyle(h), r=h&&h.getBoundingClientRect();
-    return {out:[...new Set(out)],handle:cs&&{w:Math.round(r.width),h:Math.round(r.height),touchAction:cs.touchAction,
-      userSelect:cs.webkitUserSelect||cs.userSelect,callout:cs.webkitTouchCallout}};
+    return {out:[...new Set(out)]};
   });
   console.log('-- plan-edit -- targets<44:',editSmall.out.length?editSmall.out:'✓');
-  console.log('   handle:',JSON.stringify(editSmall.handle));
-
-  const before=await page.$$eval('#pane-plan .ev',els=>els.map(e=>e.dataset.ev));
-  const h=await page.$('.handle');
-  // park the handle near the top of the *visual* viewport so mouse coords line up
-  await page.evaluate(()=>{const r=document.querySelector('.handle').getBoundingClientRect();window.scrollBy(0,r.top-160);});
-  await page.waitForTimeout(200);
-  const b=await h.boundingBox();
-  await page.mouse.move(b.x+b.width/2,b.y+b.height/2);
-  await page.mouse.down();
-  await page.waitForTimeout(60);
-  const armedEarly=await page.$eval('.handle',e=>e.classList.contains('armed'));
-  await page.waitForTimeout(220);
-  const armedAfter=await page.$eval('.handle',e=>e.classList.contains('armed'));
-  for(let i=1;i<=6;i++){ await page.mouse.move(b.x+b.width/2,b.y+b.height/2+i*40); await page.waitForTimeout(30); }
-  await page.mouse.up(); await page.waitForTimeout(250);
-  const after=await page.$$eval('#pane-plan .ev',els=>els.map(e=>e.dataset.ev));
-  const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('plan')||'{}'));
-  console.log('   hold-to-arm: 60ms=',armedEarly,' 280ms=',armedAfter);
-  console.log('   order before:',before.join(','),'\n   order after :',after.join(','),
-              '\n   reordered:',before.join()!==after.join(),' persisted:',!!stored['2026-09-03']);
-
-  // accidental brush must not reorder
-  await page.reload(); await page.waitForTimeout(300);
-  await page.evaluate(()=>document.getElementById('editToggle').click()); await page.waitForTimeout(200);
-  const o1=await page.$$eval('#pane-plan .ev',e=>e.map(x=>x.dataset.ev));
-  const h2=await page.$('.handle');
-  await page.evaluate(()=>{const r=document.querySelector('.handle').getBoundingClientRect();window.scrollBy(0,r.top-160);});
-  await page.waitForTimeout(200);
-  const b2=await h2.boundingBox();
-  await page.mouse.move(b2.x+b2.width/2,b2.y+b2.height/2);
-  await page.mouse.down(); await page.mouse.move(b2.x+b2.width/2,b2.y+b2.height/2+70); await page.mouse.up();
-  await page.waitForTimeout(200);
-  const o2=await page.$$eval('#pane-plan .ev',e=>e.map(x=>x.dataset.ev));
-  console.log('   quick brush left order intact:',o1.join()===o2.join());
 
   await page.screenshot({path:`v2-${name}-edit.png`});
   await page.evaluate(()=>document.getElementById('editToggle').click()); await page.waitForTimeout(200);

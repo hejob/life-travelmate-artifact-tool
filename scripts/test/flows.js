@@ -31,24 +31,28 @@ ok('item created', n1===n0+1);
 ok('times parsed into the timeline', (await p.$$eval('.tl .ev .time',e=>e.map(x=>x.textContent))).some(t=>t.includes('10:15')));
 
 // edit existing
-const edits=await p.$$('[data-eedit]');
-await edits[0].click(); await p.waitForTimeout(250);
-await p.fill('#f_title','Renamed item');
-await p.click('#f_save'); await p.waitForTimeout(250);
-ok('edit saved', (await p.$$eval('.tl .ev .title',e=>e.map(x=>x.textContent))).some(t=>t.includes('Renamed item')));
+const at=async title=>{const ts=await p.$$eval('.tl .ev .title',e=>e.map(x=>x.textContent.trim()));
+  return ts.findIndex(x=>x.startsWith(title));};
+let i=await at('Hirauchi sea onsen');
+await (await p.$$('[data-eedit]'))[i].click(); await p.waitForTimeout(250);
+await p.fill('#f_title','Hirauchi sea onsen renamed');
+await p.click('#f_save'); await p.waitForTimeout(300);
+ok('edit saved', (await p.$$eval('.tl .ev .title',e=>e.map(x=>x.textContent))).some(t=>t.includes('Hirauchi sea onsen renamed')));
 
-// two-tap delete
+// two-tap delete, on a different item so the export check below still has one
+// delete the last item — the renamed one sorts to the top and the export
+// check below still needs it
 const dels=await p.$$('[data-edel]');
-await dels[0].click(); await p.waitForTimeout(200);
-const armed=await p.$eval('[data-edel]',e=>e.textContent.trim());
+await dels[dels.length-1].click(); await p.waitForTimeout(200);
+const armed=await p.$$eval('[data-edel]',e=>e[e.length-1].textContent.trim());
 ok('first tap arms only', armed==='Delete?' && (await p.$$eval('.tl .ev',e=>e.length))===n1);
-await (await p.$$('[data-edel]'))[0].click(); await p.waitForTimeout(250);
+await (await p.$$('[data-edel]')).at(-1).click(); await p.waitForTimeout(250);
 ok('second tap deletes', (await p.$$eval('.tl .ev',e=>e.length))===n1-1);
 
 // export / import round trip
 await p.click('#dayExport'); await p.waitForTimeout(250);
 const json=await p.$eval('#sheetText',e=>e.value);
-ok('export sheet has JSON', json.trim().startsWith('{') && json.includes('Hirauchi sea onsen'));
+ok('export sheet has JSON', json.trim().startsWith('{') && json.includes('Hirauchi sea onsen renamed'));
 ok('export sheet is read-only', await p.$eval('#sheetText',e=>e.readOnly));
 await p.click('#sheetClose'); await p.waitForTimeout(150);
 
@@ -61,7 +65,7 @@ ok('import sheet is editable', !(await p.$eval('#sheetText',e=>e.readOnly)));
 ok('Copy hidden while importing', await p.$eval('#sheetCopy',e=>e.hidden));
 await p.fill('#sheetText',json);
 await p.click('#sheetAct'); await p.waitForTimeout(400);
-ok('import restored the edited day', (await p.$$eval('.tl .ev .title',e=>e.map(x=>x.textContent))).some(t=>t.includes('Hirauchi sea onsen')));
+ok('import restored the edited day', (await p.$$eval('.tl .ev .title',e=>e.map(x=>x.textContent))).some(t=>t.includes('Hirauchi sea onsen renamed')));
 
 // bad JSON is reported, not thrown
 await p.click('#dayImport'); await p.waitForTimeout(200);
@@ -83,6 +87,48 @@ await p.evaluate(()=>document.querySelector('nav [data-tab="info"]').click()); a
 await p.click('[data-bedit]'); await p.waitForTimeout(250);
 await p.fill('#bkBox','ABC123 seat 12A'); await p.press('#bkBox','Enter'); await p.waitForTimeout(300);
 ok('booking saved', (await p.$$eval('.brow .bv',e=>e.map(x=>x.textContent))).some(t=>t.includes('ABC123')));
+
+
+// ---- time ordering ----
+console.log('\n  time ordering');
+await p.evaluate(()=>localStorage.clear());
+await p.goto(U); await p.waitForTimeout(400);
+await p.evaluate(()=>document.getElementById('editToggle').click()); await p.waitForTimeout(250);
+const times=()=>p.$$eval('.tl .ev .time',e=>e.map(x=>x.textContent.trim().split('\n')[0]));
+const titles=()=>p.$$eval('.tl .ev .title',e=>e.map(x=>x.textContent.trim()));
+ok('built-in day starts in order', JSON.stringify(await times())===JSON.stringify(['13:30','15:00','16:00','eve']));
+
+// a late-morning item added at the end lands in the middle
+await p.evaluate(()=>document.getElementById('evAdd').click()); await p.waitForTimeout(250);
+await p.fill('#f_title','Early errand'); await p.fill('#f_loc','Naha'); await p.fill('#f_t1','09:15');
+await p.click('#f_save'); await p.waitForTimeout(350);
+ok('new item sorts to its hour, not the end', (await times())[0]==='09:15');
+
+// editing a time moves the item
+const idx=(await titles()).findIndex(t=>t.startsWith('Early errand'));
+await (await p.$$('[data-eedit]'))[idx].click(); await p.waitForTimeout(250);
+await p.fill('#f_t1','23:30'); await p.click('#f_save'); await p.waitForTimeout(400);
+const after=await titles();
+ok('retimed item moves to the new slot', after[after.length-1].startsWith('Early errand'));
+
+// word times sort at the hour they mean
+await p.evaluate(()=>document.getElementById('evAdd').click()); await p.waitForTimeout(250);
+await p.fill('#f_title','Word timed'); await p.fill('#f_loc','Naha'); await p.fill('#f_t1','am');
+await p.click('#f_save'); await p.waitForTimeout(350);
+const wt=await times();
+ok('"am" sorts before 13:30', wt.indexOf('am')<wt.indexOf('13:30') && wt.indexOf('am')>-1);
+
+// an unsorted import comes back ordered
+const unsorted=JSON.stringify({days:{'2026-09-03':[
+  {id:'z1',title:'Late',loc:'X',time:'20:00',s:1200},
+  {id:'z2',title:'Early',loc:'X',time:'07:00',s:420},
+  {id:'z3',title:'Middle',loc:'X',time:'12:00',s:720}]}});
+await p.evaluate(()=>document.getElementById('dayImport').click()); await p.waitForTimeout(250);
+await p.fill('#sheetText',unsorted); await p.click('#sheetAct'); await p.waitForTimeout(400);
+ok('unsorted import is ordered on the way in', JSON.stringify(await titles())===JSON.stringify(['Early','Middle','Late']));
+ok('order survives a reload', await (async()=>{await p.reload();await p.waitForTimeout(500);
+  return JSON.stringify(await titles())===JSON.stringify(['Early','Middle','Late']);})());
+ok('no drag handles anywhere', (await p.$$('[data-drag], .handle')).length===0);
 
 console.log(errs.length?'\n  JS ERRORS: '+errs.slice(0,4).join(' | '):'\n  ✓ no JS errors');
 await b.close();

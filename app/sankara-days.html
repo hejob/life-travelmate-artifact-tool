@@ -244,21 +244,15 @@ h3.sec{font-family:"Shippori Mincho",serif;font-size:16px;margin:20px 0 8px}
 .editbar .fchip.on{background:var(--moss);color:#fff;border-color:var(--moss);font-weight:600}
 .fchip.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
 .edited{font-size:12.5px;color:var(--amber);margin-top:6px}
-.ev.dragging{border-color:var(--moss);border-style:solid;box-shadow:0 10px 26px rgba(0,0,0,.22);transform:scale(1.015)}
-.tl.dragging-on{-webkit-user-select:none;user-select:none}
+@keyframes evflash{0%{background:var(--moss-soft);border-color:var(--moss)}100%{background:var(--surface);border-color:var(--line)}}
+.ev.flash{animation:evflash 1.4s ease-out}
 .ev.editing{flex-wrap:wrap}
 .evacts{display:flex;flex-direction:row;justify-content:flex-end;align-items:center;gap:8px;flex:1 0 100%;margin:9px 0 0;padding-top:9px;border-top:1px solid var(--line)}
 .evacts button{width:var(--tap);height:var(--tap);border-radius:11px;border:1px solid var(--line);background:var(--surface2);color:var(--ink2);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center}
 .evacts button:active{background:var(--moss-soft);border-color:var(--moss)}
 .evacts button.del{color:var(--amber)}
 .evacts button.del.arm{width:auto;min-width:var(--tap);padding:0 10px;font-size:11.5px;font-weight:700;background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
-/* Drag handle: pointer events only (no scroll steal), and every flavour of
-   text selection / callout off so press-and-hold starts a drag instead of
-   the iOS "select word / copy" bubble. */
-.evacts .handle{touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.evacts .handle svg{width:20px;height:20px}
-.evacts .handle.armed{background:var(--moss);border-color:var(--moss);color:var(--on-accent);transform:scale(1.06)}
-.ev.editing{border-style:dashed;-webkit-user-select:none;user-select:none}
+.ev.editing{border-style:dashed}
 .evform{background:var(--surface);border:1.5px solid var(--moss);border-radius:14px;padding:12px 13px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
 .evform label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin-top:3px}
 .evform input,.evform textarea,.evform select{width:100%;min-width:0;min-height:var(--tap);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:9px 11px;font:inherit;font-size:16px}
@@ -366,7 +360,6 @@ nav button.sel{color:var(--moss);font-weight:600}
 const LITE=false; /* build-lite.sh flips this: Lite build has no Claude capabilities and hides the Ask tab */
 /* ---------------- helpers ---------------- */
 const M = q => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
-const GRIP='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
 const GLOBE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18-2.5-2.7-2.5-15.3 0-18z"/></svg>';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -725,11 +718,19 @@ let sampleFn=null, sampleDead=false;
 let curDay=null, curTab="plan", ideaArea="yakushima", ideaTag=null;
 let askTurns=[], askCtl=null, askBusy=false;
 let noteTagFilter=null, showDone=false, editingNote=null, editingBk=null;
-let editMode=false, editingEv=null, pendingDel=null, pendingReset=null;
+let editMode=false, editingEv=null, pendingDel=null, pendingReset=null, flashEv=null, scrollForm=false;
 const NOTE_TAGS=[["memo","Memo"],["todo","To-do"],["buy","Buy"],["idea","Idea"],["later","Later"],["otherday","Other day"]];
 
 /* ---------------- shared doc (checks + bookings) ---------------- */
+/* A write comes back as a snapshot, and the echo can still carry the document
+   as it was a moment ago. Taking that at face value would wipe the item you
+   just added — so a local schedule edit stays authoritative until the round
+   trip has had time to land, and always while a form is open. */
+let planDirty=0;
+const PLAN_SETTLE=6000;
+function planHoldsLocal(){ return editingEv!=null || Date.now()-planDirty<PLAN_SETTLE; }
 function shareWrite(){
+  planDirty=Date.now();
   if(sharedRef){ sharedRef.set({checks:{...checks},bookings:{...bookings},plan:{...plan}}).catch(()=>{}); }
   else{ lsSet("checks",checks); lsSet("bookings",bookings); lsSet("plan",plan); }
 }
@@ -740,16 +741,41 @@ function shareWrite(){
    the same operation. Everything downstream reads through effDay/allDays. */
 const EV_FIELDS=["id","time","title","jp","loc","mapq","note","trans","site","flag","flno","ideas","ask"];
 const FLAG_OPTS=[["","— no flag —"],["tbd","to decide"],["reserve","book needed"],["confirm","confirm time"],["decide","flexible"]];
-function effDay(d){ return plan[d.iso]?{...d,events:plan[d.iso]}:d; }
+function effDay(d){ return {...d,events:sortEvents(plan[d.iso]||d.events)}; }
 function allDays(){ return DAYS.map(effDay); }
 function dayFor(iso){ const b=DAYS.find(x=>x.iso===iso); return b?effDay(b):null; }
 function ensurePlan(iso){
   if(!plan[iso]) plan[iso]=(DAYS.find(d=>d.iso===iso)||{events:[]}).events.map(e=>({...e}));
+  plan[iso]=sortEvents(plan[iso]);
   return plan[iso];
 }
 function newEvId(){ return "x"+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
 function hhmm(x){ const r=/^(\d{1,2}):(\d{2})$/.exec(String(x||"").trim()); if(!r)return null;
   const h=+r[1],m=+r[2]; return (h>23||m>59)?null:h*60+m; }
+/* The day is a timeline, so items are always shown in time order — there is no
+   manual arrangement to get out of sync with the clock. Items whose time is a
+   word rather than a clock reading ("am", "eve") sort at the hour that word
+   means; anything unrecognised keeps the slot it is already in. */
+const TIME_WORDS={am:540,morning:540,day:720,noon:720,midday:720,aft:840,afternoon:840,
+  pm:840,eve:1080,evening:1080,dinner:1140,night:1260,late:1320};
+function sortKey(ev){
+  if(ev.s!=null) return ev.s;
+  const w=String(ev.time||"").toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  for(const t of w) if(TIME_WORDS[t]!=null) return TIME_WORDS[t];
+  return null;
+}
+function sortEvents(evs){
+  /* carry the previous item's slot forward so an untimed item stays put
+     instead of jumping to the top of the day */
+  let last=0;
+  const keyed=evs.map((ev,i)=>{
+    const k=sortKey(ev);
+    if(k!=null) last=k;
+    return {ev,k:last,i};
+  });
+  keyed.sort((a,b)=>a.k-b.k||a.i-b.i);   /* stable: equal times keep their order */
+  return keyed.map(x=>x.ev);
+}
 function evTiming(t1,t2){
   const a=hhmm(t1), b=hhmm(t2), out={};
   if(a!=null){ out.s=a; if(b!=null&&b>a) out.e=b; out.time=(b!=null&&b>a)?t1.trim()+"\n"+t2.trim():t1.trim(); }
@@ -795,7 +821,7 @@ function planImport(text,iso){
     if(!known.has(k)){ skipped++; continue; }
     const evs=map[k].map(sanitizeEv).filter(Boolean);
     if(!evs.length){ skipped++; continue; }
-    plan[k]=evs; n++;
+    plan[k]=sortEvents(evs); n++;
   }
   if(!n) return "Nothing imported — no usable items for dates in this trip.";
   shareWrite();
@@ -931,6 +957,19 @@ function renderPlan(){
     ${editMode?"":dayMaps(d)}
     <div class="tl">${d.events.map(ev=>ev.id===editingEv?evForm(ev):evHTML(d,ev)).join("")}</div>`;
   bindEvents($("pane-plan"));
+  if(scrollForm&&editingEv){
+    /* a new item sorts to wherever its time puts it — which can be off-screen,
+       and then the button looks like it did nothing */
+    scrollForm=false;
+    const f=$("pane-plan").querySelector(`[data-form="${editingEv}"]`);
+    if(f) f.scrollIntoView({block:"center",behavior:"smooth"});
+  }
+  if(flashEv){
+    /* an edited item may have moved to a different hour — show where it landed */
+    const row=$("pane-plan").querySelector(`[data-ev="${flashEv}"]`);
+    flashEv=null;
+    if(row) row.scrollIntoView({block:"center",behavior:"smooth"});
+  }
   $("copyDay").onclick=()=>openSheet(`Sep ${d.n} — ${d.title}`,dayText(d));
   $("editToggle").onclick=()=>{editMode=!editMode;editingEv=null;pendingDel=null;pendingReset=null;renderPlan();};
   if(editMode) bindEdit(d);
@@ -939,7 +978,7 @@ function evHTML(d,ev){
   const st=evStatus(d,ev);
   const flags={tbd:"to decide",reserve:"book needed",confirm:"confirm time",decide:"flexible"};
   const pin='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
-  return `<div class="ev ${st}${editMode?" editing":""}" data-ev="${ev.id}">
+  return `<div class="ev ${st}${editMode?" editing":""}${flashEv===ev.id?" flash":""}" data-ev="${ev.id}">
     <div class="time">${esc(ev.time||"")}</div>
     <div class="body">
       <div class="title">${esc(ev.title)} <span class="jp">${esc(ev.jp||"")}</span></div>
@@ -958,7 +997,6 @@ function evHTML(d,ev){
       ?`<div class="evacts">
           <button data-eedit="${ev.id}" aria-label="edit item">✎</button>
           <button class="del${pendingDel===ev.id?" arm":""}" data-edel="${ev.id}" aria-label="delete item">${pendingDel===ev.id?"Delete?":"✕"}</button>
-          ${editingEv?"":`<button class="handle" data-drag="${ev.id}" aria-label="drag to reorder">${GRIP}</button>`}
         </div>`
       :`<button class="tick" data-tick="${ev.id}" aria-label="mark done"><span></span></button>`}
   </div>`;
@@ -977,7 +1015,7 @@ function evForm(ev){
   const t=(ev.time||"").split("\n");
   const v=x=>esc(x||"");
   return `<div class="evform" data-form="${ev.id}">
-    <label>Time — HH:MM, or a word like “eve”</label>
+    <label>Time — HH:MM, or a word like “eve”. The day re-sorts itself.</label>
     <div class="row2">
       <input id="f_t1" value="${v(t[0])}" placeholder="13:30 / am / eve">
       <input id="f_t2" value="${v(t[1])}" placeholder="until 15:00">
@@ -1015,20 +1053,20 @@ function evFormSave(){
     flag:g("f_flag"), flno:g("f_flno"), site:g("f_site").trim(),
     ...evTiming(g("f_t1"),g("f_t2"))
   });
-  if(next) evs[i]=next;
+  if(next){ evs[i]=next; flashEv=next.id; }
+  plan[curDay]=sortEvents(evs);
   editingEv=null; shareWrite(); renderPlan();
 }
 function bindEdit(d){
   const root=$("pane-plan");
   root.querySelectorAll("[data-eedit]").forEach(b=>b.onclick=()=>{
-    editingEv=b.dataset.eedit; pendingDel=null; renderPlan();
-    const t=$("f_title"); if(t) t.focus();
+    editingEv=b.dataset.eedit; pendingDel=null; scrollForm=true; renderPlan();
   });
   root.querySelectorAll("[data-edel]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.edel;
     if(pendingDel!==id){ pendingDel=id; renderPlan(); return; }
     const evs=ensurePlan(curDay);
-    plan[curDay]=evs.filter(x=>x.id!==id);
+    plan[curDay]=sortEvents(evs.filter(x=>x.id!==id));
     pendingDel=null; shareWrite(); renderPlan();
   });
   const sv=$("f_save"), cx=$("f_cancel");
@@ -1038,8 +1076,9 @@ function bindEdit(d){
   if(add) add.onclick=()=>{
     const evs=ensurePlan(curDay);
     const ev={id:newEvId(),time:"",title:"New item",loc:"—"};
-    evs.push(ev); editingEv=ev.id; shareWrite(); renderPlan();
-    const t=$("f_title"); if(t){t.focus();t.select();}
+    evs.push(ev); editingEv=ev.id; scrollForm=true;
+    shareWrite(); renderPlan();          /* the day re-sorts when it is saved */
+    const t=$("f_title"); if(t) t.select();
   };
   const ex=$("dayExport");
   if(ex) ex.onclick=()=>openSheet(`Sep ${d.n} — JSON`,planExport(d.iso),
@@ -1051,90 +1090,6 @@ function bindEdit(d){
     if(pendingReset!==d.iso){ pendingReset=d.iso; renderPlan(); return; }
     delete plan[d.iso]; pendingReset=null; shareWrite(); renderPlan();
   };
-  bindDrag(root);
-}
-/* Reorder by finger.
-   - A dedicated handle, so a drag can never be confused with a scroll or a tap
-     on the card behind it.
-   - Press-and-hold (HOLD_MS) arms the drag: a brush past the handle does
-     nothing, and the armed state is visible before anything moves.
-   - touch-action:none + user-select:none + touch-callout:none on the handle
-     stop iOS from opening the "select / copy" bubble on that same long press.
-   - Auto-scrolls when the finger nears the top or bottom of the screen, so a
-     long day can be reordered without letting go. */
-const HOLD_MS=180, MOVE_CANCEL=12, EDGE=90, EDGE_STEP=14;
-function bindDrag(root){
-  const list=root.querySelector(".tl");
-  if(!list) return;
-  root.querySelectorAll("[data-drag]").forEach(h=>{
-    h.addEventListener("pointerdown",down=>{
-      const row=h.closest(".ev"); if(!row) return;
-      down.preventDefault();
-      let armed=false, timer=0, scroller=0;
-      const x0=down.clientX, y0=down.clientY, pid=down.pointerId;
-      /* Listen on the document, not the handle. Reordering re-inserts the row —
-         and re-inserting an element drops its pointer capture, so pointerup
-         would never come back to the handle and the drop would be lost. */
-      const arm=()=>{
-        armed=true;
-        h.classList.add("armed");
-        row.classList.add("dragging");
-        list.classList.add("dragging-on");
-        if(navigator.vibrate) try{ navigator.vibrate(12); }catch(e){}
-      };
-      timer=setTimeout(arm,HOLD_MS);
-      const place=y=>{
-        for(const r of list.querySelectorAll(".ev")){
-          if(r===row) continue;
-          const b=r.getBoundingClientRect();
-          if(y>b.top&&y<b.bottom){
-            list.insertBefore(row,(y<b.top+b.height/2)?r:r.nextSibling);
-            break;
-          }
-        }
-      };
-      const move=e=>{
-        if(e.pointerId!==pid) return;
-        if(!armed){
-          if(Math.abs(e.clientY-y0)>MOVE_CANCEL||Math.abs(e.clientX-x0)>MOVE_CANCEL){ clearTimeout(timer); }
-          return;
-        }
-        const y=e.clientY;
-        place(y);
-        clearInterval(scroller);
-        const dy=y<EDGE?-EDGE_STEP:(y>window.innerHeight-EDGE?EDGE_STEP:0);
-        if(dy) scroller=setInterval(()=>{ window.scrollBy(0,dy); place(y); },16);
-      };
-      const up=e=>{
-        if(e&&e.pointerId!=null&&e.pointerId!==pid) return;
-        clearTimeout(timer); clearInterval(scroller);
-        document.removeEventListener("pointermove",move);
-        document.removeEventListener("pointerup",up);
-        document.removeEventListener("pointercancel",up);
-        window.removeEventListener("blur",up);
-        h.classList.remove("armed");
-        row.classList.remove("dragging");
-        list.classList.remove("dragging-on");
-        if(armed) commitOrder(list);
-      };
-      document.addEventListener("pointermove",move);
-      document.addEventListener("pointerup",up);
-      document.addEventListener("pointercancel",up);
-      window.addEventListener("blur",up);
-    });
-  });
-}
-function commitOrder(list){
-  const evs=ensurePlan(curDay);
-  const ids=[...list.querySelectorAll(".ev")].map(r=>r.dataset.ev);
-  const byId=new Map(evs.map(e=>[e.id,e]));
-  const next=[];
-  for(const id of ids){ const e=byId.get(id); if(e&&!next.includes(e)) next.push(e); }
-  for(const e of evs) if(!next.includes(e)) next.push(e);
-  const changed=next.some((e,i)=>e!==evs[i]);
-  plan[curDay]=next;
-  if(changed) shareWrite();
-  renderPlan();
 }
 function openImport(iso,title){
   openSheet(title,"",
@@ -1522,7 +1477,7 @@ $("askInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.
       db=d;
       sharedRef=db.doc("trip/shared");
       sharedRef.onSnapshot(snap=>{
-        if(snap.exists){ const dd=snap.data(); checks=dd.checks||{}; if(dd.bookings) bookings=dd.bookings; if(dd.plan) plan=dd.plan; }
+        if(snap.exists){ const dd=snap.data(); checks=dd.checks||{}; if(dd.bookings) bookings=dd.bookings; if(dd.plan&&!planHoldsLocal()) plan=dd.plan; }
         $("sync").classList.add("on"); $("syncTxt").textContent="synced";
         refreshChecksUI();
       },()=>{ $("sync").classList.remove("on"); $("syncTxt").textContent="local"; });
