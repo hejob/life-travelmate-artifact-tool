@@ -94,6 +94,9 @@ ok('booking saved', (await p.$$eval('.brow .bv',e=>e.map(x=>x.textContent))).som
 console.log('\n  time ordering');
 await p.evaluate(()=>localStorage.clear());
 await p.goto(U); await p.waitForTimeout(400);
+// pin Sep 3 rather than "today" — the app opens on the current date, so these
+// assertions would drift as the trip runs
+await p.evaluate(()=>document.querySelectorAll('.daychip')[0].click()); await p.waitForTimeout(300);
 await p.evaluate(()=>document.getElementById('editToggle').click()); await p.waitForTimeout(250);
 const times=()=>p.$$eval('.tl .ev .time',e=>e.map(x=>x.textContent.trim().split('\n')[0]));
 const titles=()=>p.$$eval('.tl .ev .title',e=>e.map(x=>x.textContent.trim()));
@@ -127,7 +130,9 @@ const unsorted=JSON.stringify({days:{'2026-09-03':[
 await p.evaluate(()=>document.getElementById('dayImport').click()); await p.waitForTimeout(250);
 await p.fill('#sheetText',unsorted); await p.$$eval('#sheetActs .fchip',e=>e[1].click()); await p.waitForTimeout(400);
 ok('unsorted import is ordered on the way in', JSON.stringify(await titles())===JSON.stringify(['Early','Middle','Late']));
-ok('order survives a reload', await (async()=>{await p.reload();await p.waitForTimeout(500);
+ok('order survives a reload', await (async()=>{
+  await p.reload(); await p.waitForTimeout(500);
+  await p.evaluate(()=>document.querySelectorAll('.daychip')[0].click()); await p.waitForTimeout(300);
   return JSON.stringify(await titles())===JSON.stringify(['Early','Middle','Late']);})());
 ok('no drag handles anywhere', (await p.$$('[data-drag], .handle')).length===0);
 
